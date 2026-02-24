@@ -1,0 +1,215 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper
+        PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.ruoyi.appointment.mapper.VaccineAppointmentMapper">
+
+    <resultMap type="VaccineAppointment" id="VaccineAppointmentResult">
+        <result property="id"    column="id"    />
+        <result property="userId"    column="user_id"    />
+        <result property="vaccineId"    column="vaccine_id"    />
+        <result property="appointmentDate"    column="appointment_date"    />
+        <result property="timeSlot"    column="time_slot"    />
+        <result property="status"    column="status"    />
+        <result property="phone"    column="phone"    />
+        <result property="remark"    column="remark"    />
+        <result property="createBy"    column="create_by"    />
+        <result property="createTime"    column="create_time"    />
+        <result property="updateBy"    column="update_by"    />
+        <result property="updateTime"    column="update_time"    />
+        <!-- 关联查询字段映射 -->
+        <result property="vaccineName"    column="vaccineName"    />
+        <result property="suitableAge"    column="suitableAge"    />
+        <result property="userName"    column="userName"    />
+        <result property="userPhone"    column="userPhone"    />
+        <result property="manufacturer" column="manufacturer"/>  <!-- ✅ 正确 -->
+    </resultMap>
+
+    <sql id="selectVaccineAppointmentVo">
+        select id, user_id, vaccine_id, appointment_date, time_slot, status, phone, remark, create_by, create_time, update_by, update_time from vaccine_appointment
+    </sql>
+
+    <!-- 基本查询（不改） -->
+    <select id="selectVaccineAppointmentList" parameterType="VaccineAppointment" resultMap="VaccineAppointmentResult">
+        <include refid="selectVaccineAppointmentVo"/>
+        <where>
+            <if test="userId != null "> and user_id = #{userId}</if>
+            <if test="vaccineId != null "> and vaccine_id = #{vaccineId}</if>
+            <if test="appointmentDate != null "> and appointment_date = #{appointmentDate}</if>
+            <if test="timeSlot != null  and timeSlot != ''"> and time_slot = #{timeSlot}</if>
+            <if test="status != null  and status != ''"> and status = #{status}</if>
+            <if test="phone != null  and phone != ''"> and phone = #{phone}</if>
+        </where>
+        order by create_time desc
+    </select>
+
+    <!-- 管理员查询：关联用户和疫苗信息（修改这里！） -->
+    <select id="selectVaccineAppointmentListWithInfo" parameterType="VaccineAppointment" resultMap="VaccineAppointmentResult">
+        SELECT
+        a.id as id,
+        a.user_id as user_id,
+        u.user_name as userName,
+        u.phonenumber as userPhone,
+        a.vaccine_id as vaccine_id,
+        v.name as vaccineName,
+        v.manufacturer as manufacturer,  <!-- ⭐️ 关键：这里要起别名 manufacturer -->
+        v.suitable_age as suitableAge,
+        a.appointment_date as appointment_date,
+        a.time_slot as time_slot,
+        a.status as status,
+        a.phone as phone,
+        a.remark as remark,
+        a.create_time as create_time,
+        a.update_time as update_time
+        FROM vaccine_appointment a
+        LEFT JOIN sys_user u ON a.user_id = u.user_id
+        LEFT JOIN vaccine_information v ON a.vaccine_id = v.id  <!-- ⭐️ 关键修改：v.id 不是 v.vaccine_id -->
+        <where>
+            <if test="appointmentDate != null">
+                AND a.appointment_date = #{appointmentDate}
+            </if>
+            <if test="status != null and status != ''">
+                AND a.status = #{status}
+            </if>
+            <if test="vaccineId != null">
+                AND a.vaccine_id = #{vaccineId}
+            </if>
+            <if test="userId != null">
+                AND a.user_id = #{userId}
+            </if>
+            <!-- 支持按疫苗名称搜索 -->
+            <if test="vaccineName != null and vaccineName != ''">
+                AND v.name like concat('%', #{vaccineName}, '%')
+            </if>
+            <!-- 支持按用户名称搜索 -->
+            <if test="_parameter != null and _parameter.getUserName() != null and _parameter.getUserName() != ''">
+                AND (
+                u.user_name like concat('%', #{userName}, '%')
+                OR u.nick_name like concat('%', #{userName}, '%')
+                OR u.phonenumber like concat('%', #{userName}, '%')
+                )
+            </if>
+            <if test="manufacturer != null and manufacturer != ''">
+                AND v.manufacturer like concat('%', #{manufacturer}, '%')
+            </if>
+
+            <!-- 手机号模糊搜索 -->
+            <if test="phone != null and phone != ''">
+                AND (a.phone like concat('%', #{phone}, '%')
+                OR u.phonenumber like concat('%', #{phone}, '%'))
+            </if>
+        </where>
+        ORDER BY a.create_time DESC
+    </select>
+
+    <!-- 我的预约列表查询（也需要修改） -->
+    <select id="selectMyAppointmentList" parameterType="VaccineAppointment" resultMap="VaccineAppointmentResult">
+        SELECT
+        a.id as id,
+        a.vaccine_id as vaccine_id,
+        v.name as vaccineName,
+        a.appointment_date as appointment_date,
+        v.manufacturer as manufacturer,  <!-- ⭐️ 如果需要，也加上 -->
+        a.time_slot as time_slot,
+        a.status as status,
+        a.phone as phone,
+        a.remark as remark,
+        a.create_time as create_time
+        FROM vaccine_appointment a
+        LEFT JOIN vaccine_information v ON a.vaccine_id = v.id  <!-- ⭐️ 同样修改这里 -->
+        WHERE a.user_id = #{userId}
+        <if test="status != null and status != ''">
+            AND a.status = #{status}
+        </if>
+        <if test="appointmentDate != null">
+            AND a.appointment_date = #{appointmentDate}
+        </if>
+        ORDER BY a.create_time DESC
+    </select>
+
+    <!-- 根据ID查询（不改） -->
+    <select id="selectVaccineAppointmentById" parameterType="Long" resultMap="VaccineAppointmentResult">
+        SELECT
+        a.id,
+        a.user_id,
+        u.user_name as userName,
+        u.phonenumber as userPhone,
+        a.vaccine_id,
+        v.name as vaccineName,
+        v.suitable_age as suitableAge,
+        v.manufacturer as manufacturer,  <!-- ⭐️ 如果需要，也加上 -->
+        a.appointment_date,
+        a.time_slot,
+        a.status,
+        a.phone,
+        a.remark,
+        a.create_time,
+        a.update_time
+        FROM vaccine_appointment a
+        LEFT JOIN sys_user u ON a.user_id = u.user_id
+        LEFT JOIN vaccine_information v ON a.vaccine_id = v.id
+        WHERE a.id = #{id}
+    </select>
+
+    <!-- 插入（不改） -->
+    <insert id="insertVaccineAppointment" parameterType="VaccineAppointment" useGeneratedKeys="true" keyProperty="id">
+        insert into vaccine_appointment
+        <trim prefix="(" suffix=")" suffixOverrides=",">
+            <if test="userId != null">user_id,</if>
+            <if test="vaccineId != null">vaccine_id,</if>
+            <if test="appointmentDate != null">appointment_date,</if>
+            <if test="timeSlot != null">time_slot,</if>
+            <if test="status != null">status,</if>
+            <if test="phone != null">phone,</if>
+            <if test="remark != null">remark,</if>
+            <if test="createBy != null">create_by,</if>
+            <if test="createTime != null">create_time,</if>
+            <if test="updateBy != null">update_by,</if>
+            <if test="updateTime != null">update_time,</if>
+        </trim>
+        <trim prefix="values (" suffix=")" suffixOverrides=",">
+            <if test="userId != null">#{userId},</if>
+            <if test="vaccineId != null">#{vaccineId},</if>
+            <if test="appointmentDate != null">#{appointmentDate},</if>
+            <if test="timeSlot != null">#{timeSlot},</if>
+            <if test="status != null">#{status},</if>
+            <if test="phone != null">#{phone},</if>
+            <if test="remark != null">#{remark},</if>
+            <if test="createBy != null">#{createBy},</if>
+            <if test="createTime != null">#{createTime},</if>
+            <if test="updateBy != null">#{updateBy},</if>
+            <if test="updateTime != null">#{updateTime},</if>
+        </trim>
+    </insert>
+
+    <!-- 更新（不改） -->
+    <update id="updateVaccineAppointment" parameterType="VaccineAppointment">
+        update vaccine_appointment
+        <trim prefix="SET" suffixOverrides=",">
+            <if test="userId != null">user_id = #{userId},</if>
+            <if test="vaccineId != null">vaccine_id = #{vaccineId},</if>
+            <if test="appointmentDate != null">appointment_date = #{appointmentDate},</if>
+            <if test="timeSlot != null">time_slot = #{timeSlot},</if>
+            <if test="status != null">status = #{status},</if>
+            <if test="phone != null">phone = #{phone},</if>
+            <if test="remark != null">remark = #{remark},</if>
+            <if test="updateBy != null">update_by = #{updateBy},</if>
+            <if test="updateTime != null">update_time = #{updateTime},</if>
+        </trim>
+        where id = #{id}
+    </update>
+
+    <!-- 删除（不改） -->
+    <delete id="deleteVaccineAppointmentById" parameterType="Long">
+        delete from vaccine_appointment where id = #{id}
+    </delete>
+
+    <!-- 批量删除（不改） -->
+    <delete id="deleteVaccineAppointmentByIds" parameterType="String">
+        delete from vaccine_appointment where id in
+        <foreach item="id" collection="array" open="(" separator="," close=")">
+            #{id}
+        </foreach>
+    </delete>
+
+</mapper>
