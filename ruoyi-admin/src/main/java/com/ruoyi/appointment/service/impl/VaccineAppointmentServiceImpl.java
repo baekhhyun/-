@@ -114,4 +114,19 @@ public class VaccineAppointmentServiceImpl implements IVaccineAppointmentService
     {
         return vaccineAppointmentMapper.deleteVaccineAppointmentById(id);
     }
+    @Override
+    public int selectPendingCount() {
+        // 打印日志，方便调试
+
+
+        try {
+            // 调用Mapper层方法
+            int count = vaccineAppointmentMapper.selectPendingCount();
+            // 打印查询结果
+            return count;
+        } catch (Exception e) {
+            // 如果出错，打印错误日志，返回0
+            return 0;
+        }
+    }
 }

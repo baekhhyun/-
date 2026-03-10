@@ -420,7 +420,7 @@ export default {
     handleDelete(row) {
       const ids = row.id || this.ids;
       this.$modal
-        .confirm('是否确认删除疫苗信息编号为"' + ids + '"的数据项？')
+        .confirm('是否确认删除疫苗名称为"' + row.name + '"的数据项？')
         .then(function () {
           return delVaccine(ids);
         })
@@ -432,13 +432,51 @@ export default {
     },
     /** 导出按钮操作 */
     handleExport() {
-      this.download(
-        "system/vaccine/export",
-        {
-          ...this.queryParams,
-        },
-        `vaccine_${new Date().getTime()}.xlsx`
-      );
+      // 使用原生axios请求，不走框架的download
+      import("@/utils/request").then((module) => {
+        const request = module.default;
+
+        request({
+          url: "/vaccine/vaccine/export",
+          method: "post",
+          data: this.queryParams,
+          responseType: "blob",
+          headers: {
+            "Content-Type": "application/json",
+          },
+        })
+          .then((response) => {
+            // 检查返回的数据类型
+            console.log(
+              "返回数据类型:",
+              response instanceof Blob ? "Blob" : typeof response
+            );
+
+            // 创建Blob对象
+            const blob = new Blob([response], {
+              type: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+            });
+
+            // 创建下载链接
+            const link = document.createElement("a");
+            link.href = window.URL.createObjectURL(blob);
+            link.download = `疫苗数据_${new Date().getTime()}.xlsx`;
+
+            // 触发下载
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
+
+            // 释放内存
+            window.URL.revokeObjectURL(link.href);
+
+            this.$modal.msgSuccess("导出成功");
+          })
+          .catch((error) => {
+            console.error("导出失败:", error);
+            this.$modal.msgError("导出失败");
+          });
+      });
     },
   },
 };

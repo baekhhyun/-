@@ -14,7 +14,6 @@
           placeholder="选择预约日期"
           format="yyyy年MM月dd日"
           value-format="yyyy-MM-dd"
-          style="width: 200px"
         />
       </el-form-item>
       <el-form-item label="预约状态" prop="status">
@@ -22,7 +21,6 @@
           v-model="queryParams.status"
           placeholder="全部状态"
           clearable
-          style="width: 120px"
         >
           <el-option label="待确认" value="0" />
           <el-option label="已确认" value="1" />
@@ -35,7 +33,6 @@
           v-model="queryParams.vaccineName"
           placeholder="请输入疫苗名称"
           clearable
-          style="width: 200px"
           @keyup.enter.native="handleQuery"
         />
       </el-form-item>
@@ -44,7 +41,6 @@
           v-model="queryParams.userName"
           placeholder="请输入用户名称"
           clearable
-          style="width: 200px"
           @keyup.enter.native="handleQuery"
         />
       </el-form-item>
@@ -591,18 +587,13 @@ export default {
 
     /** 导出按钮操作 */
     handleExport() {
-      const queryParams = this.queryParams;
-      this.$confirm("是否确认导出所有预约数据项？", "警告", {
-        confirmButtonText: "确定",
-        cancelButtonText: "取消",
-        type: "warning",
-      })
-        .then(() => {
-          return exportAppointment(queryParams);
-        })
-        .then((response) => {
-          this.download(response.msg);
-        });
+      this.download(
+        "vaccine/appointment/export",
+        {
+          ...this.queryParams,
+        },
+        `预约数据_${new Date().getTime()}.xlsx`
+      );
     },
 
     // ============ 工具方法 ============

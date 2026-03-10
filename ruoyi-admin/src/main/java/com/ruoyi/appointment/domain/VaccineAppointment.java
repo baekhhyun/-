@@ -20,27 +20,33 @@ public class VaccineAppointment extends BaseEntity
     /** 预约ID */
     private Long id;
 
+    @Excel(name = "用户名称")
+    private String userName;
+
     /** 用户ID */
-    @Excel(name = "用户ID")
     private Long userId;
 
     /** 疫苗ID */
-    @Excel(name = "疫苗ID")
+
     private Long vaccineId;
+
+    @Excel(name = "疫苗名称")
+    private String vaccineName;
 
     /** 预约日期 */
     @JsonFormat(pattern = "yyyy-MM-dd")
     @Excel(name = "预约日期", width = 30, dateFormat = "yyyy-MM-dd")
     private Date appointmentDate;
+
     @JsonFormat(pattern = "yyyy-MM-dd HH:mm:ss")
     private Date updateTime;
 
     /** 时间段 */
-    @Excel(name = "时间段")
+    @Excel(name = "时间段", readConverterExp = "1=上午,2=下午,3=晚上")
     private String timeSlot;
 
     /** 状态 */
-    @Excel(name = "状态")
+    @Excel(name = "预约状态", readConverterExp = "0=待确认,1=已确认,2=已完成,3=已取消")
     private String status;
 
     /** 联系电话 */
@@ -48,13 +54,12 @@ public class VaccineAppointment extends BaseEntity
     private String phone;
 
     /** 用户名称（关联查询） */
-    private String userName;
+
 
     /** 用户手机号（关联查询） */
     private String userPhone;
 
-    /** 疫苗名称（关联查询） */
-    private String vaccineName;
+
 
     /** 生产厂家（关联查询） */
     private String manufacturer;

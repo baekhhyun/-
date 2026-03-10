@@ -1,5 +1,6 @@
 package com.ruoyi.vaccine.controller;
 
+import java.io.IOException;
 import java.util.List;
 import javax.servlet.http.HttpServletResponse;
 import org.springframework.security.access.prepost.PreAuthorize;
@@ -47,18 +48,16 @@ public class VaccineInformationController extends BaseController
     }
 
     /**
-     * 导出疫苗信息列表
+     * 导出疫苗列表
      */
-//    @PreAuthorize("@ss.hasPermi('vaccine:vaccine:export')")
     @Log(title = "疫苗信息", businessType = BusinessType.EXPORT)
     @PostMapping("/export")
-    public void export(HttpServletResponse response, VaccineInformation vaccineInformation)
+    public void export(HttpServletResponse response, VaccineInformation vaccineInformation) throws IOException
     {
         List<VaccineInformation> list = vaccineInformationService.selectVaccineInformationList(vaccineInformation);
         ExcelUtil<VaccineInformation> util = new ExcelUtil<VaccineInformation>(VaccineInformation.class);
-        util.exportExcel(response, list, "疫苗信息数据");
+        util.exportExcel(response, list, "疫苗数据");
     }
-
     /**
      * 获取疫苗信息详细信息
      */

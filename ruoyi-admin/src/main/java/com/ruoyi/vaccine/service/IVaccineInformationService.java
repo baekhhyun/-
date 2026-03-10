@@ -2,6 +2,7 @@ package com.ruoyi.vaccine.service;
 
 import java.util.List;
 import com.ruoyi.vaccine.domain.VaccineInformation;
+import org.springframework.transaction.annotation.Transactional;
 
 /**
  * 疫苗信息Service接口
@@ -51,6 +52,8 @@ public interface IVaccineInformationService
      */
     public int deleteVaccineInformationByIds(Long[] ids);
 
+
+
     /**
      * 删除疫苗信息信息
      * 
@@ -58,4 +61,5 @@ public interface IVaccineInformationService
      * @return 结果
      */
     public int deleteVaccineInformationById(Long id);
+
 }

@@ -1,12 +1,17 @@
 package com.ruoyi.vaccine.service.impl;
 
 import java.util.List;
+
+import com.ruoyi.appointment.mapper.VaccineAppointmentMapper;
+import com.ruoyi.common.core.text.Convert;
+import com.ruoyi.common.exception.ServiceException;
 import com.ruoyi.common.utils.DateUtils;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import com.ruoyi.vaccine.mapper.VaccineInformationMapper;
 import com.ruoyi.vaccine.domain.VaccineInformation;
 import com.ruoyi.vaccine.service.IVaccineInformationService;
+import org.springframework.transaction.annotation.Transactional;
 
 /**
  * 疫苗信息Service业务层处理
@@ -19,8 +24,8 @@ public class VaccineInformationServiceImpl implements IVaccineInformationService
 {
     @Autowired
     private VaccineInformationMapper vaccineInformationMapper;
-
-    /**
+    @Autowired
+    private VaccineAppointmentMapper vaccineAppointmentMapper;    /**
      * 查询疫苗信息
      * 
      * @param id 疫苗信息主键
@@ -77,8 +82,17 @@ public class VaccineInformationServiceImpl implements IVaccineInformationService
      * @return 结果
      */
     @Override
-    public int deleteVaccineInformationByIds(Long[] ids)
-    {
+    @Transactional
+    public int deleteVaccineInformationByIds(Long[] ids) {  // 注意参数是 Long[]
+
+        for (Long id : ids) {
+            // 检查该疫苗是否有未完成的预约（待确认'0'、已确认'1'）
+            int count = vaccineAppointmentMapper.countUnfinishedByVaccineId(id);
+            if (count > 0) {
+                throw new ServiceException(String.format("疫苗【ID: %s】存在未完成的预约，无法删除", id));
+            }
+        }
+
         return vaccineInformationMapper.deleteVaccineInformationByIds(ids);
     }
 

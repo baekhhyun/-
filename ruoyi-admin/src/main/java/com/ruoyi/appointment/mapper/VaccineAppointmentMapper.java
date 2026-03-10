@@ -2,6 +2,8 @@ package com.ruoyi.appointment.mapper;
 
 import java.util.List;
 import com.ruoyi.appointment.domain.VaccineAppointment;
+import org.apache.ibatis.annotations.Param;
+import org.apache.ibatis.annotations.Select;
 
 /**
  * 疫苗预约Mapper接口
@@ -60,4 +62,8 @@ public interface VaccineAppointmentMapper
      * @return 结果
      */
     public int deleteVaccineAppointmentByIds(Long[] ids);
+
+    public int selectPendingCount();
+    @Select("SELECT COUNT(*) FROM vaccine_appointment WHERE vaccine_id = #{vaccineId} AND status IN ('0', '1')")
+    public int countUnfinishedByVaccineId(@Param("vaccineId") Long vaccineId);
 }

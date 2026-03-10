@@ -72,11 +72,11 @@
             placeholder="选择预约日期"
             format="yyyy年MM月dd日"
             value-format="yyyy-MM-dd"
-            :picker-options="dateOptions"
+            :picker-options="datePickerOptions"
             style="width: 100%"
           >
           </el-date-picker>
-          <div class="tip-text">请选择未来7天内的日期（周末不可预约）</div>
+          <div class="tip-text">请选择未来7天内的日期</div>
         </el-form-item>
 
         <!-- 时间段选择 -->
@@ -226,11 +226,11 @@ export default {
         }
 
         // 检查是否为周末（0=周日,6=周六）
-        const day = selectedDate.getDay();
-        if (day === 0 || day === 6) {
-          callback(new Error("周末不可预约，请选择工作日"));
-          return;
-        }
+        // const day = selectedDate.getDay();
+        // if (day === 0 || day === 6) {
+        //   callback(new Error("周末不可预约，请选择工作日"));
+        //   return;
+        // }
 
         callback();
       }
@@ -295,28 +295,19 @@ export default {
       slotLoading: false,
 
       // 日期选择限制
-      dateOptions: {
+
+      datePickerOptions: {
         disabledDate(time) {
-          // 禁用过去的日期
           const now = new Date();
           now.setHours(0, 0, 0, 0);
-          if (time.getTime() < now.getTime()) {
-            return true;
-          }
-
-          // 禁用超过7天的日期
-          const maxDate = new Date();
-          maxDate.setDate(maxDate.getDate() + 7);
-          if (time.getTime() > maxDate.getTime()) {
-            return true;
-          }
-
-          // 禁用周末（0=周日,6=周六）
-          const day = time.getDay();
-          return day === 0 || day === 6;
+          // 计算7天后的日期（包含今天）
+          const maxDate = new Date(now);
+          maxDate.setDate(now.getDate() + 6); // 今天是第1天，+6天是第7天
+          return (
+            time.getTime() < now.getTime() || time.getTime() > maxDate.getTime()
+          );
         },
       },
-
       // 状态标志
       loading: false,
       submitting: false,

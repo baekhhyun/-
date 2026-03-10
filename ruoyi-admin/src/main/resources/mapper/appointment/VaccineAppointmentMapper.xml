@@ -150,6 +150,11 @@
         LEFT JOIN vaccine_information v ON a.vaccine_id = v.id
         WHERE a.id = #{id}
     </select>
+    <select id="selectPendingCount" resultType="int">
+        select count(*)
+        from vaccine_appointment
+        where status = '0'
+    </select>
 
     <!-- 插入（不改） -->
     <insert id="insertVaccineAppointment" parameterType="VaccineAppointment" useGeneratedKeys="true" keyProperty="id">

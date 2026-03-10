@@ -74,4 +74,5 @@ public interface IVaccineAppointmentService
      * @return 结果
      */
     public int deleteVaccineAppointmentById(Long id);
+    public int selectPendingCount();
 }

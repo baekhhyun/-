@@ -332,6 +332,22 @@ public class VaccineAppointmentController extends BaseController
             return AjaxResult.error("删除失败：" + e.getMessage());
         }
     }
+    @GetMapping("/pendingCount")
+    public AjaxResult getPendingCount() {
+        // 记录日志
+        logger.info("管理员查询待处理预约数量");
+        try {
+            // 调用Service层方法
+            int count = vaccineAppointmentService.selectPendingCount();
+
+            // 返回成功结果
+            return success(count);
+        } catch (Exception e) {
+            // 如果出错，返回错误信息
+            logger.error("查询待处理数量失败", e);
+            return error("查询失败：" + e.getMessage());
+        }
+    }
 
     /**
      * 获取指定日期的各时间段剩余名额

@@ -1,6 +1,13 @@
 <template>
   <div class="app-container">
-    <el-form :model="queryParams" ref="queryForm" size="small" :inline="true" v-show="showSearch" label-width="68px">
+    <el-form
+      :model="queryParams"
+      ref="queryForm"
+      size="small"
+      :inline="true"
+      v-show="showSearch"
+      label-width="68px"
+    >
       <el-form-item label="公告标题" prop="noticeTitle">
         <el-input
           v-model="queryParams.noticeTitle"
@@ -18,7 +25,11 @@
         />
       </el-form-item>
       <el-form-item label="类型" prop="noticeType">
-        <el-select v-model="queryParams.noticeType" placeholder="公告类型" clearable>
+        <el-select
+          v-model="queryParams.noticeType"
+          placeholder="公告类型"
+          clearable
+        >
           <el-option
             v-for="dict in dict.type.sys_notice_type"
             :key="dict.value"
@@ -28,8 +39,16 @@
         </el-select>
       </el-form-item>
       <el-form-item>
-        <el-button type="primary" icon="el-icon-search" size="mini" @click="handleQuery">搜索</el-button>
-        <el-button icon="el-icon-refresh" size="mini" @click="resetQuery">重置</el-button>
+        <el-button
+          type="primary"
+          icon="el-icon-search"
+          size="mini"
+          @click="handleQuery"
+          >搜索</el-button
+        >
+        <el-button icon="el-icon-refresh" size="mini" @click="resetQuery"
+          >重置</el-button
+        >
       </el-form-item>
     </el-form>
 
@@ -42,7 +61,8 @@
           size="mini"
           @click="handleAdd"
           v-hasPermi="['system:notice:add']"
-        >新增</el-button>
+          >新增</el-button
+        >
       </el-col>
       <el-col :span="1.5">
         <el-button
@@ -53,7 +73,8 @@
           :disabled="single"
           @click="handleUpdate"
           v-hasPermi="['system:notice:edit']"
-        >修改</el-button>
+          >修改</el-button
+        >
       </el-col>
       <el-col :span="1.5">
         <el-button
@@ -64,37 +85,75 @@
           :disabled="multiple"
           @click="handleDelete"
           v-hasPermi="['system:notice:remove']"
-        >删除</el-button>
+          >删除</el-button
+        >
       </el-col>
-      <right-toolbar :showSearch.sync="showSearch" @queryTable="getList"></right-toolbar>
+      <right-toolbar
+        :showSearch.sync="showSearch"
+        @queryTable="getList"
+      ></right-toolbar>
     </el-row>
 
-    <el-table v-loading="loading" :data="noticeList" @selection-change="handleSelectionChange">
+    <el-table
+      v-loading="loading"
+      :data="noticeList"
+      @selection-change="handleSelectionChange"
+    >
       <el-table-column type="selection" width="55" align="center" />
-      <el-table-column label="序号" align="center" prop="noticeId" width="100" />
+      <el-table-column
+        label="序号"
+        align="center"
+        prop="noticeId"
+        width="100"
+      />
       <el-table-column
         label="公告标题"
         align="center"
         prop="noticeTitle"
         :show-overflow-tooltip="true"
       />
-      <el-table-column label="公告类型" align="center" prop="noticeType" width="100">
+      <el-table-column
+        label="公告类型"
+        align="center"
+        prop="noticeType"
+        width="100"
+      >
         <template slot-scope="scope">
-          <dict-tag :options="dict.type.sys_notice_type" :value="scope.row.noticeType"/>
+          <dict-tag
+            :options="dict.type.sys_notice_type"
+            :value="scope.row.noticeType"
+          />
         </template>
       </el-table-column>
       <el-table-column label="状态" align="center" prop="status" width="100">
         <template slot-scope="scope">
-          <dict-tag :options="dict.type.sys_notice_status" :value="scope.row.status"/>
+          <dict-tag
+            :options="dict.type.sys_notice_status"
+            :value="scope.row.status"
+          />
         </template>
       </el-table-column>
-      <el-table-column label="创建者" align="center" prop="createBy" width="100" />
-      <el-table-column label="创建时间" align="center" prop="createTime" width="100">
+      <el-table-column
+        label="创建者"
+        align="center"
+        prop="createBy"
+        width="100"
+      />
+      <el-table-column
+        label="创建时间"
+        align="center"
+        prop="createTime"
+        width="100"
+      >
         <template slot-scope="scope">
-          <span>{{ parseTime(scope.row.createTime, '{y}-{m}-{d}') }}</span>
+          <span>{{ parseTime(scope.row.createTime, "{y}-{m}-{d}") }}</span>
         </template>
       </el-table-column>
-      <el-table-column label="操作" align="center" class-name="small-padding fixed-width">
+      <el-table-column
+        label="操作"
+        align="center"
+        class-name="small-padding fixed-width"
+      >
         <template slot-scope="scope">
           <el-button
             size="mini"
@@ -102,20 +161,29 @@
             icon="el-icon-edit"
             @click="handleUpdate(scope.row)"
             v-hasPermi="['system:notice:edit']"
-          >修改</el-button>
+            >修改</el-button
+          >
+          <el-button
+            size="mini"
+            type="text"
+            icon="el-icon-view"
+            @click="handleView(scope.row)"
+            >详情</el-button
+          >
           <el-button
             size="mini"
             type="text"
             icon="el-icon-delete"
             @click="handleDelete(scope.row)"
             v-hasPermi="['system:notice:remove']"
-          >删除</el-button>
+            >删除</el-button
+          >
         </template>
       </el-table-column>
     </el-table>
 
     <pagination
-      v-show="total>0"
+      v-show="total > 0"
       :total="total"
       :page.sync="queryParams.pageNum"
       :limit.sync="queryParams.pageSize"
@@ -128,7 +196,10 @@
         <el-row>
           <el-col :span="12">
             <el-form-item label="公告标题" prop="noticeTitle">
-              <el-input v-model="form.noticeTitle" placeholder="请输入公告标题" />
+              <el-input
+                v-model="form.noticeTitle"
+                placeholder="请输入公告标题"
+              />
             </el-form-item>
           </el-col>
           <el-col :span="12">
@@ -150,13 +221,14 @@
                   v-for="dict in dict.type.sys_notice_status"
                   :key="dict.value"
                   :label="dict.value"
-                >{{dict.label}}</el-radio>
+                  >{{ dict.label }}</el-radio
+                >
               </el-radio-group>
             </el-form-item>
           </el-col>
           <el-col :span="24">
             <el-form-item label="内容">
-              <editor v-model="form.noticeContent" :min-height="192"/>
+              <editor v-model="form.noticeContent" :min-height="192" />
             </el-form-item>
           </el-col>
         </el-row>
@@ -170,11 +242,17 @@
 </template>
 
 <script>
-import { listNotice, getNotice, delNotice, addNotice, updateNotice } from "@/api/system/notice"
+import {
+  listNotice,
+  getNotice,
+  delNotice,
+  addNotice,
+  updateNotice,
+} from "@/api/system/notice";
 
 export default {
   name: "Notice",
-  dicts: ['sys_notice_status', 'sys_notice_type'],
+  dicts: ["sys_notice_status", "sys_notice_type"],
   data() {
     return {
       // 遮罩层
@@ -201,38 +279,122 @@ export default {
         pageSize: 10,
         noticeTitle: undefined,
         createBy: undefined,
-        status: undefined
+        status: undefined,
       },
       // 表单参数
       form: {},
       // 表单校验
       rules: {
         noticeTitle: [
-          { required: true, message: "公告标题不能为空", trigger: "blur" }
+          { required: true, message: "公告标题不能为空", trigger: "blur" },
         ],
         noticeType: [
-          { required: true, message: "公告类型不能为空", trigger: "change" }
-        ]
-      }
-    }
+          { required: true, message: "公告类型不能为空", trigger: "change" },
+        ],
+      },
+    };
   },
   created() {
-    this.getList()
+    this.getList();
   },
   methods: {
+    handleView(row) {
+      // 获取完整公告内容
+      getNotice(row.noticeId)
+        .then((response) => {
+          const notice = response.data;
+
+          // 使用 $alert 弹出详情
+          this.$alert(
+            `<div class="notice-view-detail">
+        <div style="margin-bottom: 20px; padding-bottom: 15px; border-bottom: 2px solid #f0f0f0;">
+          <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px;">
+            <span style="display: inline-block; padding: 4px 12px; border-radius: 20px; font-size: 12px; 
+                        background: ${this.getNoticeTypeColor(
+                          notice.noticeType
+                        )}20; 
+                        color: ${this.getNoticeTypeColor(notice.noticeType)};">
+              ${this.getNoticeTypeText(notice.noticeType)}
+            </span>
+            <span style="color: #999; font-size: 12px;">
+              <i class="el-icon-time"></i> ${this.parseTime(
+                notice.createTime,
+                "{y}-{m}-{d} {h}:{i}:{s}"
+              )}
+            </span>
+          </div>
+          <div style="font-size: 24px; font-weight: 600; color: #2c3e50;">
+            ${notice.noticeTitle}
+          </div>
+          <div style="margin-top: 10px; color: #909399; font-size: 13px;">
+            发布人：${notice.createBy || "系统管理员"}
+          </div>
+        </div>
+        
+        <div style="font-size: 16px; color: #606266; line-height: 1.8; max-height: 400px; overflow-y: auto; padding: 10px; 
+                    background-color: #fafafa; border-radius: 8px;">
+          ${notice.noticeContent || "暂无内容"}
+        </div>
+        
+        <div style="margin-top: 20px; padding-top: 15px; border-top: 1px dashed #e4e7ed; 
+                    text-align: center; color: #999; font-size: 12px;">
+          <i class="el-icon-view"></i> 阅读模式 · 仅可查看不可编辑
+        </div>
+      </div>`,
+            "公告详情",
+            {
+              dangerouslyUseHTMLString: true,
+              confirmButtonText: "关 闭",
+              showCancelButton: false,
+              closeOnClickModal: true,
+              customClass: "notice-view-dialog",
+              callback: (action) => {
+                console.log("已查看公告:", notice.noticeTitle);
+              },
+            }
+          );
+        })
+        .catch((error) => {
+          this.$message.error("获取公告详情失败");
+        });
+    },
+
+    /** 获取公告类型颜色 */
+    getNoticeTypeColor(type) {
+      const colors = {
+        1: "#409EFF", // 系统公告 - 蓝色
+        2: "#67C23A", // 疫苗动态 - 绿色
+        3: "#E6A23C", // 节假日 - 橙色
+        4: "#F56C6C", // 温馨提示 - 红色
+        5: "#909399", // 功能更新 - 灰色
+      };
+      return colors[type] || "#409EFF";
+    },
+
+    /** 获取公告类型文字（复用已有的，如果没有就添加） */
+    getNoticeTypeText(type) {
+      const texts = {
+        1: "系统公告",
+        2: "疫苗动态",
+        3: "节假日",
+        4: "温馨提示",
+        5: "功能更新",
+      };
+      return texts[type] || "系统公告";
+    },
     /** 查询公告列表 */
     getList() {
-      this.loading = true
-      listNotice(this.queryParams).then(response => {
-        this.noticeList = response.rows
-        this.total = response.total
-        this.loading = false
-      })
+      this.loading = true;
+      listNotice(this.queryParams).then((response) => {
+        this.noticeList = response.rows;
+        this.total = response.total;
+        this.loading = false;
+      });
     },
     // 取消按钮
     cancel() {
-      this.open = false
-      this.reset()
+      this.open = false;
+      this.reset();
     },
     // 表单重置
     reset() {
@@ -241,72 +403,166 @@ export default {
         noticeTitle: undefined,
         noticeType: undefined,
         noticeContent: undefined,
-        status: "0"
-      }
-      this.resetForm("form")
+        status: "0",
+      };
+      this.resetForm("form");
     },
     /** 搜索按钮操作 */
     handleQuery() {
-      this.queryParams.pageNum = 1
-      this.getList()
+      this.queryParams.pageNum = 1;
+      this.getList();
     },
     /** 重置按钮操作 */
     resetQuery() {
-      this.resetForm("queryForm")
-      this.handleQuery()
+      this.resetForm("queryForm");
+      this.handleQuery();
     },
     // 多选框选中数据
     handleSelectionChange(selection) {
-      this.ids = selection.map(item => item.noticeId)
-      this.single = selection.length!=1
-      this.multiple = !selection.length
+      this.ids = selection.map((item) => item.noticeId);
+      this.single = selection.length != 1;
+      this.multiple = !selection.length;
     },
     /** 新增按钮操作 */
     handleAdd() {
-      this.reset()
-      this.open = true
-      this.title = "添加公告"
+      this.reset();
+      this.open = true;
+      this.title = "添加公告";
     },
     /** 修改按钮操作 */
     handleUpdate(row) {
-      this.reset()
-      const noticeId = row.noticeId || this.ids
-      getNotice(noticeId).then(response => {
-        this.form = response.data
-        this.open = true
-        this.title = "修改公告"
-      })
+      this.reset();
+      const noticeId = row.noticeId || this.ids;
+      getNotice(noticeId).then((response) => {
+        this.form = response.data;
+        this.open = true;
+        this.title = "修改公告";
+      });
     },
     /** 提交按钮 */
-    submitForm: function() {
-      this.$refs["form"].validate(valid => {
+    submitForm: function () {
+      this.$refs["form"].validate((valid) => {
         if (valid) {
           if (this.form.noticeId != undefined) {
             updateNotice(this.form).then(() => {
-              this.$modal.msgSuccess("修改成功")
-              this.open = false
-              this.getList()
-            })
+              this.$modal.msgSuccess("修改成功");
+              this.open = false;
+              this.getList();
+            });
           } else {
             addNotice(this.form).then(() => {
-              this.$modal.msgSuccess("新增成功")
-              this.open = false
-              this.getList()
-            })
+              this.$modal.msgSuccess("新增成功");
+              this.open = false;
+              this.getList();
+            });
           }
         }
-      })
+      });
     },
     /** 删除按钮操作 */
     handleDelete(row) {
-      const noticeIds = row.noticeId || this.ids
-      this.$modal.confirm('是否确认删除公告编号为"' + noticeIds + '"的数据项？').then(function() {
-        return delNotice(noticeIds)
-      }).then(() => {
-        this.getList()
-        this.$modal.msgSuccess("删除成功")
-      }).catch(() => {})
-    }
-  }
-}
+      const noticeIds = row.noticeId || this.ids;
+      this.$modal
+        .confirm('是否确认删除公告编号为"' + noticeIds + '"的数据项？')
+        .then(function () {
+          return delNotice(noticeIds);
+        })
+        .then(() => {
+          this.getList();
+          this.$modal.msgSuccess("删除成功");
+        })
+        .catch(() => {});
+    },
+  },
+};
 </script>
+<style scoped>
+/* ========== 公告详情弹窗样式 ========== */
+.notice-view-dialog {
+  max-width: 700px;
+  width: 90%;
+}
+
+.notice-view-dialog .el-message-box__content {
+  padding: 25px;
+  max-height: 600px;
+  overflow-y: auto;
+}
+
+.notice-view-detail {
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto,
+    "Helvetica Neue", Arial, sans-serif;
+}
+
+/* 公告内容样式 */
+.notice-view-detail p {
+  margin: 12px 0;
+  line-height: 1.8;
+}
+
+.notice-view-detail ul,
+.notice-view-detail ol {
+  padding-left: 25px;
+  margin: 12px 0;
+}
+
+.notice-view-detail li {
+  margin: 6px 0;
+  line-height: 1.6;
+}
+
+.notice-view-detail table {
+  width: 100%;
+  border-collapse: collapse;
+  margin: 15px 0;
+}
+
+.notice-view-detail th,
+.notice-view-detail td {
+  padding: 10px;
+  border: 1px solid #e4e7ed;
+  text-align: left;
+}
+
+.notice-view-detail th {
+  background-color: #f5f7fa;
+  font-weight: 600;
+}
+
+.notice-view-detail h1,
+.notice-view-detail h2,
+.notice-view-detail h3,
+.notice-view-detail h4 {
+  margin: 16px 0 8px;
+  color: #2c3e50;
+}
+
+.notice-view-detail img {
+  max-width: 100%;
+  height: auto;
+  margin: 10px 0;
+  border-radius: 8px;
+}
+
+.notice-view-detail blockquote {
+  margin: 15px 0;
+  padding: 10px 20px;
+  background-color: #f8f8f8;
+  border-left: 4px solid #409eff;
+  color: #666;
+}
+
+/* 滚动条美化 */
+.notice-view-dialog .el-message-box__content::-webkit-scrollbar {
+  width: 6px;
+}
+
+.notice-view-dialog .el-message-box__content::-webkit-scrollbar-thumb {
+  background: #ddd;
+  border-radius: 3px;
+}
+
+.notice-view-dialog .el-message-box__content::-webkit-scrollbar-track {
+  background: #f5f7fa;
+}
+</style>

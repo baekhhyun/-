@@ -94,7 +94,7 @@ export default {
   name: "Login",
   data() {
     return {
-      title: process.env.VUE_APP_TITLE,
+      title: "疫苗接种预约平台",
       footerContent: defaultSettings.footerContent,
       codeUrl: "",
       loginForm: {
@@ -196,7 +196,7 @@ export default {
   justify-content: center;
   align-items: center;
   height: 100%;
-  background-image: url("../assets/images/login-background.jpg");
+  background-image: url("../assets/images/background.jpg");
   background-size: cover;
 }
 .title {

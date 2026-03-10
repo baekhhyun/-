@@ -87,3 +87,9 @@ export function getTimeSlotRemaining(appointmentDate) {
     params: { appointmentDate: appointmentDate },
   });
 }
+export function getPendingCount() {
+  return request({
+    url: "/vaccine/appointment/pendingCount",
+    method: "get",
+  });
+}
