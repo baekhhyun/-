@@ -128,8 +128,10 @@
               </div>
               <div class="item-info">
                 <div class="info-line">
-                  <i class="el-icon-medicine"></i>
-                  <span>{{ item.vaccineName || "未知疫苗" }}</span>
+                  疫苗名称：
+                  <span style="font-weight: bold">{{
+                    item.vaccineName || "未知疫苗"
+                  }}</span>
                 </div>
                 <div class="info-line">
                   <i class="el-icon-date"></i>
@@ -463,20 +465,37 @@ export default {
     updatePieChart(data) {
       if (!this.pieChart) return;
       const option = {
-        tooltip: { trigger: "item", formatter: "{b}: {c} ({d}%)" },
+        tooltip: {
+          trigger: "item",
+          formatter: "{b}: {c} ({d}%)",
+        },
+
         legend: { orient: "vertical", left: "left" },
         series: [
           {
             type: "pie",
             radius: ["50%", "70%"],
+            avoidLabelOverlap: false,
+            itemStyle: {
+              borderRadius: 10,
+              borderColor: "#fff",
+              borderWidth: 2,
+            },
             data: data,
             color: ["#E6A23C", "#409EFF", "#67C23A", "#F56C6C"],
+            label: {
+              show: false,
+              position: "center",
+            },
             emphasis: {
               label: {
                 show: true,
-                fontSize: "24",
+                fontSize: 16,
                 fontWeight: "bold",
               },
+            },
+            labelLine: {
+              show: false,
             },
           },
         ],
@@ -516,12 +535,18 @@ export default {
     updateTimeSlotChart(data) {
       if (!this.timeSlotChart) return;
       const option = {
-        tooltip: { trigger: "item" },
+        tooltip: { trigger: "item", formatter: "{b}: {c} ({d}%)" },
         legend: { orient: "vertical", left: "left" },
         series: [
           {
             type: "pie",
             radius: ["40%", "70%"],
+            avoidLabelOverlap: false,
+            itemStyle: {
+              borderRadius: 10,
+              borderColor: "#fff",
+              borderWidth: 2,
+            },
             data: data.length
               ? data
               : [
@@ -529,15 +554,21 @@ export default {
                   { name: "下午", value: 0 },
                   { name: "晚上", value: 0 },
                 ],
-            label: { show: true, formatter: "{b}: {d}%" },
-            color: ["#409EFF", "#67C23A", "#E6A23C"],
+            label: {
+              show: false,
+              position: "center",
+            },
             emphasis: {
               label: {
                 show: true,
-                fontSize: "24",
+                fontSize: 16,
                 fontWeight: "bold",
               },
             },
+            labelLine: {
+              show: false,
+            },
+            color: ["#36C2CE", "#77E4C8", "#FFC700"],
           },
         ],
       };
