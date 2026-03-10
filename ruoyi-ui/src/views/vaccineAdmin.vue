@@ -464,13 +464,20 @@ export default {
       if (!this.pieChart) return;
       const option = {
         tooltip: { trigger: "item", formatter: "{b}: {c} ({d}%)" },
-        legend: { orient: "vertical", left: "left", top: "center" },
+        legend: { orient: "vertical", left: "left" },
         series: [
           {
             type: "pie",
             radius: ["50%", "70%"],
             data: data,
             color: ["#E6A23C", "#409EFF", "#67C23A", "#F56C6C"],
+            emphasis: {
+              label: {
+                show: true,
+                fontSize: "24",
+                fontWeight: "bold",
+              },
+            },
           },
         ],
       };
@@ -510,7 +517,7 @@ export default {
       if (!this.timeSlotChart) return;
       const option = {
         tooltip: { trigger: "item" },
-        legend: { orient: "vertical", right: "left", top: "center" },
+        legend: { orient: "vertical", left: "left" },
         series: [
           {
             type: "pie",
@@ -524,6 +531,13 @@ export default {
                 ],
             label: { show: true, formatter: "{b}: {d}%" },
             color: ["#409EFF", "#67C23A", "#E6A23C"],
+            emphasis: {
+              label: {
+                show: true,
+                fontSize: "24",
+                fontWeight: "bold",
+              },
+            },
           },
         ],
       };
