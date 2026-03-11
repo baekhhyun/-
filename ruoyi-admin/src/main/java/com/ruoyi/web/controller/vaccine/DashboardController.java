@@ -9,6 +9,7 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
+import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -70,16 +71,31 @@ public class DashboardController extends BaseController {
      */
     @GetMapping("/trend")
     public AjaxResult getTrendData(@RequestParam(defaultValue = "week") String type) {
-        Map<String, Object> result = new HashMap<>();
+        List<Map<String, Object>> result = new ArrayList<>();
 
         if ("week".equals(type)) {
-            // 近7天趋势
-            result.put("dates", dashboardService.get14DaysRange());
-            result.put("counts", dashboardService.get14DaysCount());
+            // 获取14天日期范围
+            List<String> dates = dashboardService.get14DaysRange();
+            List<Integer> counts = dashboardService.get14DaysCount();
+
+            // 转换成前端需要的格式
+            for (int i = 0; i < dates.size(); i++) {
+                Map<String, Object> item = new HashMap<>();
+                item.put("date", dates.get(i));
+                item.put("count", counts.get(i));
+                result.add(item);
+            }
         } else {
-            // 近30天趋势
-            result.put("dates", dashboardService.getLast30Days());
-            result.put("counts", dashboardService.getLast30DaysCount());
+            // 30天趋势
+            List<String> dates = dashboardService.getLast30Days();
+            List<Integer> counts = dashboardService.getLast30DaysCount();
+
+            for (int i = 0; i < dates.size(); i++) {
+                Map<String, Object> item = new HashMap<>();
+                item.put("date", dates.get(i));
+                item.put("count", counts.get(i));
+                result.add(item);
+            }
         }
 
         return success(result);

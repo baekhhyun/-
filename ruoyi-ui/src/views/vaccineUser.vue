@@ -262,7 +262,7 @@ export default {
           closeOnClickModal: true,
           customClass: "notice-detail-dialog",
           callback: (action) => {
-            console.log("已读公告:", notice.noticeTitle);
+            // console.log("已读公告:", notice.noticeTitle);
           },
         }
       );
@@ -296,7 +296,7 @@ export default {
     getNotices() {
       getNotices({ pageNum: 1, pageSize: 5 }).then((response) => {
         this.notices = response.rows || [];
-        console.log(this.notices);
+        // console.log(this.notices);
       });
     },
 

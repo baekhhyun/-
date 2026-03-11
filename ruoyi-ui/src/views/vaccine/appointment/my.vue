@@ -123,6 +123,7 @@ export default {
         type: "warning",
       })
         .then(() => {
+          6;
           cancelAppointment(row.id).then((response) => {
             if (response.code === 200) {
               this.$message.success("取消成功");
@@ -133,8 +134,7 @@ export default {
           });
         })
         .catch(() => {
-          // 用户点击取消，什么都不做
-          console.log("取消操作已取消");
+          // console.log("取消操作已取消");
         });
     },
 

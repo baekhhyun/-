@@ -432,7 +432,6 @@ export default {
     },
     /** 导出按钮操作 */
     handleExport() {
-      // 使用原生axios请求，不走框架的download
       import("@/utils/request").then((module) => {
         const request = module.default;
 
@@ -447,16 +446,15 @@ export default {
         })
           .then((response) => {
             // 检查返回的数据类型
-            console.log(
-              "返回数据类型:",
-              response instanceof Blob ? "Blob" : typeof response
-            );
+            // console.log(
+            //   "返回数据类型:",
+            //   response instanceof Blob ? "Blob" : typeof response
+            // );
 
             // 创建Blob对象
             const blob = new Blob([response], {
               type: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
             });
-
             // 创建下载链接
             const link = document.createElement("a");
             link.href = window.URL.createObjectURL(blob);

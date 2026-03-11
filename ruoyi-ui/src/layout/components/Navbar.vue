@@ -98,7 +98,7 @@ export default {
     ...mapGetters(["sidebar", "avatar", "device", "nickName", "roles"]),
     isVaccineAdmin() {
       // 打印出来看看roles到底是什么
-      console.log("当前用户roles:", this.roles);
+      // console.log("当前用户roles:", this.roles);
 
       // roles可能是数组，也可能是字符串
       if (Array.isArray(this.roles)) {
@@ -128,7 +128,7 @@ export default {
     // 如果是管理员，启动定时器
 
     if (this.isVaccineAdmin) {
-      console.log("疫苗管理员已登录，启动小红点功能");
+      // console.log("疫苗管理员已登录，启动小红点功能");
       this.loadPendingCount();
       // 每30秒刷新一次
       this.timer = setInterval(this.loadPendingCount, 30000);
@@ -146,11 +146,11 @@ export default {
         .then((response) => {
           if (response.code === 200) {
             this.pendingCount = response.data || 0;
-            console.log("待处理预约数:", this.pendingCount);
+            // console.log("待处理预约数:", this.pendingCount);
           }
         })
         .catch((error) => {
-          console.error("获取待处理数量失败", error);
+          // console.error("获取待处理数量失败", error);
         });
     },
 

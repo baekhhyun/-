@@ -416,8 +416,8 @@ export default {
       this.loading = true;
       listAppointment(this.queryParams)
         .then((response) => {
-          console.log("获取到的数据:", response); // 调试用
-          console.log("第一条数据详情:", response.rows[0]); // 查看数据结构
+          // console.log("获取到的数据:", response); // 调试用
+          // console.log("第一条数据详情:", response.rows[0]); // 查看数据结构
           this.appointmentList = response.rows;
           this.total = response.total;
           this.loading = false;
@@ -449,7 +449,7 @@ export default {
 
     /** 查看按钮操作 */
     handleView(id) {
-      console.log("查看详情，ID:", id); // 调试用
+      // console.log("查看详情，ID:", id); // 调试用
       if (!id) {
         this.$message.error("无效的预约ID");
         return;
@@ -498,7 +498,7 @@ export default {
             status: "3",
             remark: row.remark + "（管理员取消）",
           };
-          console.log("取消预约数据:", data); // 调试用
+          // console.log("取消预约数据:", data); // 调试用
           updateAppointment(data).then((response) => {
             if (response.code === 200) {
               this.$message.success("取消成功");
@@ -511,13 +511,13 @@ export default {
 
     /** 提交状态变更 */
     submitStatusChange() {
-      console.log("=== 状态变更调试 ===");
-      console.log("当前预约对象:", this.currentAppointment);
-      console.log("当前状态:", this.currentAppointment.status);
-      console.log(
-        "下一状态:",
-        this.statusMap[this.currentAppointment.status]?.next
-      );
+      // console.log("=== 状态变更调试 ===");
+      // console.log("当前预约对象:", this.currentAppointment);
+      // console.log("当前状态:", this.currentAppointment.status);
+      // console.log(
+      //   "下一状态:",
+      //   this.statusMap[this.currentAppointment.status]?.next
+      // );
 
       const nextStatus = this.statusMap[this.currentAppointment.status].next;
       if (!nextStatus) {
@@ -536,7 +536,7 @@ export default {
         data.remark += ` [${this.statusOperation}: ${this.statusForm.remark}]`;
       }
 
-      console.log("提交的数据:", JSON.stringify(data));
+      // console.log("提交的数据:", JSON.stringify(data));
 
       updateAppointment(data)
         .then((response) => {
@@ -558,7 +558,7 @@ export default {
 
     /** 删除按钮操作 */
     handleDelete(row) {
-      console.log("删除预约，ID:", row.id); // 调试用
+      // console.log("删除预约，ID:", row.id); // 调试用
       const appointmentId = row.id;
       this.$confirm(
         '是否确认删除预约编号为"' + appointmentId + '"的数据项？',

@@ -1,5 +1,3 @@
-<!-- ==================== 文件路径：ruoyi-ui/src/views/dashboard/admin.vue ==================== -->
-
 <template>
   <div class="admin-dashboard">
     <!-- 欢迎语 -->
@@ -11,7 +9,7 @@
       </p>
     </div>
 
-    <!-- 统计卡片行 (4列) -->
+    <!-- 统计卡片行 -->
     <el-row :gutter="20" class="stats-row">
       <el-col :span="6" v-for="(stat, index) in statsCards" :key="index">
         <el-card
@@ -39,9 +37,9 @@
       </el-col>
     </el-row>
 
-    <!-- 图表行 - 第一行 (16+8) -->
+    <!-- 图表行 -->
     <el-row :gutter="20" class="charts-row">
-      <!-- 预约趋势图 - 占16列 -->
+      <!-- 预约趋势图 -->
       <el-col :span="16">
         <el-card class="chart-card" shadow="hover">
           <div slot="header" class="chart-header">
@@ -62,7 +60,7 @@
         </el-card>
       </el-col>
 
-      <!-- 预约状态分布 - 占8列 -->
+      <!-- 预约状态分布 -->
       <el-col :span="8">
         <el-card class="chart-card" shadow="hover">
           <div slot="header" class="chart-header">
@@ -76,9 +74,8 @@
       </el-col>
     </el-row>
 
-    <!-- 第二行 - 三栏对齐 (8+8+8) -->
     <el-row :gutter="20" class="charts-row">
-      <!-- 热门疫苗预约榜 - 占8列 -->
+      <!-- 热门疫苗预约榜 -->
       <el-col :span="8">
         <el-card class="chart-card" shadow="hover">
           <div slot="header" class="chart-header">
@@ -91,7 +88,7 @@
         </el-card>
       </el-col>
 
-      <!-- 待处理预约列表 - 占8列 (和热门疫苗榜对齐) -->
+      <!-- 待处理预约列表  -->
       <el-col :span="8">
         <el-card
           class="pending-card"
@@ -108,7 +105,7 @@
             </el-button>
           </div>
 
-          <!-- 待处理列表 - 紧凑显示 -->
+          <!-- 待处理列表 -->
           <div class="pending-list" v-loading="loading">
             <div v-if="pendingList.length === 0" class="empty-state">
               <i class="el-icon-check"></i>
@@ -177,7 +174,7 @@
         </el-card>
       </el-col>
 
-      <!-- 时间段预约分布 - 占8列 -->
+      <!-- 时间段预约分布 -->
       <el-col :span="8">
         <el-card class="chart-card" shadow="hover">
           <div slot="header" class="chart-header">
@@ -208,7 +205,7 @@ export default {
   data() {
     return {
       refreshTimer: null,
-      refreshInterval: 60000, // 30秒刷新一次
+      refreshInterval: 60000, // 60秒刷新一次
       isRefreshing: false,
       resizeTimer: null,
       observer: null,
@@ -256,6 +253,8 @@ export default {
       pieChart: null,
       barChart: null,
       timeSlotChart: null,
+      trendDates: [],
+      trendValues: [],
     };
   },
   created() {
@@ -291,7 +290,7 @@ export default {
       if (this.refreshTimer) {
         clearInterval(this.refreshTimer);
         this.refreshTimer = null;
-        console.log("自动刷新已停止");
+        // console.log("自动刷新已停止");
       }
     },
 
@@ -373,14 +372,28 @@ export default {
     },
 
     getTrend() {
-      getTrendData({ type: this.trendType })
+      getTrendData({ type: "week" })
         .then((response) => {
-          if (response.code === 200) {
-            this.updateTrendChart(response.data || { dates: [], counts: [] });
+          const data = response.data;
+
+          if (Array.isArray(data) && data.length > 0) {
+            // 提取日期和数量
+            this.trendDates = data.map((item) => item.date); // ["03-01", "03-02", ...]
+            this.trendValues = data.map((item) => item.count); // [3, 5, ...]
+
+            // 更新图表
+            this.$nextTick(() => {
+              this.updateTrendChart();
+            });
+          } else {
+            console.error("趋势数据格式错误或为空:", data);
+            // 显示空数据
+            this.trendDates = [];
+            this.trendValues = [];
           }
         })
         .catch((error) => {
-          console.error("获取趋势数据失败", error);
+          console.error("获取趋势数据失败:", error);
         });
     },
 
@@ -433,7 +446,7 @@ export default {
         grid: { left: "3%", right: "4%", bottom: "3%", containLabel: true },
         xAxis: {
           type: "category",
-          data: data.dates || [],
+          data: this.trendDates,
           axisLabel: { color: "#666" },
         },
         yAxis: {
@@ -445,7 +458,7 @@ export default {
           {
             name: "预约数",
             type: "line",
-            data: data.counts || [],
+            data: this.trendValues,
             smooth: true,
             symbol: "circle",
             symbolSize: 8,
@@ -540,7 +553,7 @@ export default {
         series: [
           {
             type: "pie",
-            radius: ["40%", "70%"],
+            radius: ["50%", "70%"],
             avoidLabelOverlap: false,
             itemStyle: {
               borderRadius: 10,
@@ -585,8 +598,6 @@ export default {
       };
       return map[row.timeSlot] || row.timeSlot;
     },
-
-    // ========== 操作处理 ==========
     handleConfirm(row) {
       this.$confirm("确认该预约吗？", "提示", {
         confirmButtonText: "确定",
@@ -599,6 +610,7 @@ export default {
             this.$message.success("已确认");
             this.getPendingList();
             this.getStats();
+            this.getTrend();
           })
           .finally(() => {
             this.$set(row, "loading", false);
@@ -660,7 +672,7 @@ export default {
           height: "auto",
         });
 
-        console.log("图表已自适应调整");
+        // console.log("图表已自适应调整");
       }, 100);
     },
 
@@ -699,14 +711,12 @@ export default {
 </script>
 
 <style scoped>
-/* ========== 整体布局 ========== */
 .admin-dashboard {
   padding: 20px;
   background-color: #f5f7fa;
   min-height: calc(100vh - 84px);
 }
 
-/* ========== 欢迎语 ========== */
 .welcome-section {
   margin-bottom: 30px;
 }
@@ -730,7 +740,6 @@ export default {
   font-size: 18px;
 }
 
-/* ========== 统计卡片 ========== */
 .stats-row {
   margin-bottom: 20px;
 }
@@ -779,7 +788,6 @@ export default {
   opacity: 0.8;
 }
 
-/* ========== 图表卡片 ========== */
 .charts-row {
   margin-bottom: 20px;
 }
@@ -791,7 +799,7 @@ export default {
 .chart-card >>> .el-card__header {
   padding: 15px 20px !important;
   border-bottom: 1px solid #f0f0f0;
-  height: 51px !important; /* 固定高度 */
+  height: 51px !important;
   box-sizing: border-box !important;
   line-height: 21px !important; /* 与内边距配合 */
 }

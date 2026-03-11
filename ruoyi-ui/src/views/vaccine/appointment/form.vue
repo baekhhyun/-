@@ -314,19 +314,19 @@ export default {
     };
   },
   beforeRouteEnter(to, from, next) {
-    console.log("beforeRouteEnter", to.query);
+    // console.log("beforeRouteEnter", to.query);
     next((vm) => {
       vm.initFromRoute(to);
     });
   },
 
   beforeRouteUpdate(to, from, next) {
-    console.log(
-      "beforeRouteUpdate",
-      from.query.vaccineId,
-      "->",
-      to.query.vaccineId
-    );
+    // console.log(
+    //   "beforeRouteUpdate",
+    //   from.query.vaccineId,
+    //   "->",
+    //   to.query.vaccineId
+    // );
 
     const newVaccineId = to.query.vaccineId;
     const oldVaccineId = from.query.vaccineId;
@@ -381,7 +381,7 @@ export default {
   methods: {
     initFromRoute(route) {
       const vaccineId = route.query.vaccineId;
-      console.log("从路由初始化, vaccineId:", vaccineId);
+      // console.log("从路由初始化, vaccineId:", vaccineId);
 
       if (!vaccineId) {
         this.$message.error("未选择疫苗");
@@ -401,7 +401,7 @@ export default {
 
     // 处理疫苗切换
     handleVaccineChange(newVaccineId) {
-      console.log("处理疫苗切换:", newVaccineId);
+      // console.log("处理疫苗切换:", newVaccineId);
 
       if (!newVaccineId) return;
 
@@ -410,7 +410,7 @@ export default {
 
       // 如果相同就不处理
       if (this.vaccineId === numericId) {
-        console.log("疫苗ID相同，不处理");
+        // console.log("疫苗ID相同，不处理");
         return;
       }
 
@@ -426,7 +426,7 @@ export default {
 
     // 为新疫苗重置数据
     resetForNewVaccine() {
-      console.log("为新疫苗重置数据");
+      // console.log("为新疫苗重置数据");
 
       // 清空疫苗信息
       this.vaccine = null;
@@ -455,11 +455,11 @@ export default {
       }
 
       this.loading = true;
-      console.log("加载疫苗信息, ID:", this.vaccineId);
+      // console.log("加载疫苗信息, ID:", this.vaccineId);
 
       getVaccineInfo(this.vaccineId)
         .then((response) => {
-          console.log("疫苗信息响应:", response);
+          // console.log("疫苗信息响应:", response);
 
           if (response.code === 200 && response.data) {
             this.vaccine = response.data;
