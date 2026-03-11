@@ -47,14 +47,6 @@
               ><i class="el-icon-data-line" style="color: #409eff"></i>
               预约趋势</span
             >
-            <el-radio-group
-              v-model="trendType"
-              size="small"
-              @change="handleTrendChange"
-            >
-              <el-radio-button label="week">14天</el-radio-button>
-              <el-radio-button label="month">30天</el-radio-button>
-            </el-radio-group>
           </div>
           <div id="trendChart" style="height: 350px; width: 100%"></div>
         </el-card>
