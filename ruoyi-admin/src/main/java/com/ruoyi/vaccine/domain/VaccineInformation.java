@@ -32,7 +32,7 @@ public class VaccineInformation extends BaseEntity
     private String description;
 
     /** 适用年龄 */
-    @Excel(name = "适用年龄")
+    @Excel(name = "适用年龄", readConverterExp = "1=婴儿,2=儿童,3=青少年,4=成人,5=老人")
     @Size(min = 1, max = 10, message = "适用年龄长度必须在1到10个字符之间")
     private String suitableAge;
 
@@ -41,7 +41,7 @@ public class VaccineInformation extends BaseEntity
     private Long stock;
 
     /** 状态 */
-    @Excel(name = "状态")
+    @Excel(name = "状态",readConverterExp = "0=正常,1=停用")
     private String status;
 
     public void setId(Long id)
