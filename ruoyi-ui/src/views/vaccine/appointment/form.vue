@@ -3,7 +3,7 @@
     <!-- 面包屑导航 -->
     <el-breadcrumb separator="/" class="breadcrumb">
       <el-breadcrumb-item :to="{ path: '/vaccine/appointment/user' }"
-        >疫苗浏览</el-breadcrumb-item
+        >疫苗预约</el-breadcrumb-item
       >
       <el-breadcrumb-item>预约接种</el-breadcrumb-item>
     </el-breadcrumb>
