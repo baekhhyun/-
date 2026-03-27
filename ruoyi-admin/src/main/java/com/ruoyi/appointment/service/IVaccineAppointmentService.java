@@ -1,12 +1,11 @@
 package com.ruoyi.appointment.service;
 
 import java.util.List;
+import java.util.Map;
 import com.ruoyi.appointment.domain.VaccineAppointment;
 
 /**
  * 疫苗预约Service接口
- *
- * @author jzx
  * @date 2026-02-08
  */
 public interface IVaccineAppointmentService
@@ -75,4 +74,19 @@ public interface IVaccineAppointmentService
      */
     public int deleteVaccineAppointmentById(Long id);
     public int selectPendingCount();
+    int confirmAppointment(Long id);
+    int completeAppointment(Long id);
+    int cancelAppointment(Long id);
+
+    // ==================== 多剂次疫苗新增方法 ====================
+    List<VaccineAppointment> getUserPendingDoses(Long userId);
+    List<Map<String, Object>> getTodayReminders();
+    List<Map<String, Object>> getVaccineConsumptionStats();
+    List<Map<String, Object>> getVaccinationCoverage();
+    List<Map<String, Object>> getDoseCompletionStats(Long vaccineId);
+    int getUserCompletedDoses(Long userId, Long vaccineId);
+    VaccineAppointment getUserLatestAppointment(Long userId, Long vaccineId);
+    List<Map<String, Object>> getAppointmentTrendByDate(String beginDate, String endDate);
+    int getTotalBookedByVaccine(Long vaccineId);
+
 }

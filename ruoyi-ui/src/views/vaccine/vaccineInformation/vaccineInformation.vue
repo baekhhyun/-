@@ -24,14 +24,6 @@
           @keyup.enter.native="handleQuery"
         />
       </el-form-item>
-      <!-- <el-form-item label="适用年龄" prop="suitableAge">
-        <el-input
-          v-model="queryParams.suitableAge"
-          placeholder="请输入适用年龄"
-          clearable
-          @keyup.enter.native="handleQuery"
-        />
-      </el-form-item> -->
       <el-form-item label="适用年龄" prop="suitableAge">
         <el-select
           v-model="queryParams.suitableAge"
@@ -48,14 +40,18 @@
           <el-option label="老人" value="5" />
         </el-select>
       </el-form-item>
-      <!-- <el-form-item label="库存数量" prop="stock">
-        <el-input
-          v-model="queryParams.stock"
-          placeholder="请输入库存数量"
+      <!--  多剂次筛选（新增） -->
+      <el-form-item label="疫苗类型" prop="isMultiDose">
+        <el-select
+          v-model="queryParams.isMultiDose"
+          placeholder="请选择"
           clearable
-          @keyup.enter.native="handleQuery"
-        />
-      </el-form-item> -->
+          style="width: 240px"
+        >
+          <el-option label="单剂次" value="0" />
+          <el-option label="多剂次" value="1" />
+        </el-select>
+      </el-form-item>
       <el-form-item label="状态" prop="status">
         <el-select
           v-model="queryParams.status"
@@ -139,18 +135,61 @@
       @selection-change="handleSelectionChange"
     >
       <el-table-column type="selection" width="55" align="center" />
-      <el-table-column label="疫苗ID" align="center" prop="id" />
+      <el-table-column label="序号" align="center" width="60">
+        <template slot-scope="scope">
+          {{
+            (queryParams.pageNum - 1) * queryParams.pageSize + scope.$index + 1
+          }}
+        </template>
+      </el-table-column>
       <el-table-column label="疫苗名称" align="center" prop="name" />
       <el-table-column label="生产厂家" align="center" prop="manufacturer" />
-      <el-table-column label="疫苗描述" align="center" prop="description" />
-      <!-- <el-table-column label="适用年龄" align="center" prop="suitableAge" /> -->
+      <el-table-column
+        label="疫苗描述"
+        align="center"
+        prop="description"
+        show-overflow-tooltip
+      />
       <el-table-column label="适用年龄" align="center" width="120">
         <template slot-scope="scope">
           {{ formatSuitableAge(scope.row.suitableAge) }}
         </template>
       </el-table-column>
-      <el-table-column label="库存数量" align="center" prop="stock" />
-      <el-table-column label="状态" align="center" prop="status">
+      <el-table-column
+        label="库存数量"
+        align="center"
+        prop="stock"
+        width="100"
+      />
+      <el-table-column label="已预约总数" align="center" width="120">
+        <template slot-scope="scope">
+          <span>{{ scope.row.totalBooked || 0 }}</span>
+        </template>
+      </el-table-column>
+      <!--  多剂次疫苗列（新增） -->
+      <el-table-column label="疫苗类型" align="center" width="100">
+        <template slot-scope="scope">
+          <el-tag
+            v-if="scope.row.isMultiDose === 1"
+            type="warning"
+            size="small"
+          >
+            多剂次
+          </el-tag>
+          <el-tag v-else type="info" size="small"> 单剂次 </el-tag>
+        </template>
+      </el-table-column>
+      <!--  多剂次信息列（新增） -->
+      <el-table-column label="接种计划" align="center" width="150">
+        <template slot-scope="scope">
+          <span v-if="scope.row.isMultiDose === 1">
+            {{ scope.row.totalDoses || "-" }}剂 /
+            {{ scope.row.intervalDays || "-" }}天
+          </span>
+          <span v-else>-</span>
+        </template>
+      </el-table-column>
+      <el-table-column label="状态" align="center" prop="status" width="80">
         <template slot-scope="scope">
           <dict-tag
             :options="dict.type.vaccine_status"
@@ -162,6 +201,7 @@
         label="操作"
         align="center"
         class-name="small-padding fixed-width"
+        width="120"
       >
         <template slot-scope="scope">
           <el-button
@@ -176,6 +216,12 @@
             type="text"
             icon="el-icon-delete"
             @click="handleDelete(scope.row)"
+            :disabled="scope.row.totalBooked > 0"
+            :title="
+              scope.row.totalBooked > 0
+                ? `已有${scope.row.totalBooked}条预约，无法删除`
+                : ''
+            "
             >删除</el-button
           >
         </template>
@@ -189,16 +235,15 @@
       :limit.sync="queryParams.pageSize"
       @pagination="getList"
     />
-
     <!-- 添加或修改疫苗信息对话框 -->
     <el-dialog
       :title="title"
       :visible.sync="open"
-      width="500px"
+      width="600px"
       append-to-body
       :close-on-click-modal="false"
     >
-      <el-form ref="form" :model="form" :rules="rules" label-width="80px">
+      <el-form ref="form" :model="form" :rules="rules" label-width="100px">
         <el-form-item label="疫苗名称" prop="name">
           <el-input v-model="form.name" placeholder="请输入疫苗名称" />
         </el-form-item>
@@ -209,14 +254,16 @@
           <el-input
             v-model="form.description"
             type="textarea"
+            :rows="2"
             placeholder="请输入内容"
           />
         </el-form-item>
-        <!-- <el-form-item label="适用年龄" prop="suitableAge">
-          <el-input v-model="form.suitableAge" placeholder="请输入适用年龄" />
-        </el-form-item> -->
         <el-form-item label="适用年龄" prop="suitableAge">
-          <el-select v-model="form.suitableAge" placeholder="请选择适用年龄">
+          <el-select
+            v-model="form.suitableAge"
+            placeholder="请选择适用年龄"
+            style="width: 100%"
+          >
             <el-option label="婴儿(0-2岁)" value="1" />
             <el-option label="儿童(3-12岁)" value="2" />
             <el-option label="青少年(13-17岁)" value="3" />
@@ -231,17 +278,90 @@
             :max="999999"
             :precision="0"
             label="库存数量"
-            style="width: 200px"
+            style="width: 100%"
           />
         </el-form-item>
+
+        <!--  新增时显示疫苗类型配置，修改时隐藏 -->
+        <template v-if="title === '添加疫苗信息'">
+          <el-form-item label="疫苗类型" prop="isMultiDose">
+            <el-radio-group
+              v-model="form.isMultiDose"
+              @change="handleVaccineTypeChange"
+            >
+              <el-radio :label="0">单剂次疫苗（只需接种一次）</el-radio>
+              <el-radio :label="1">多剂次疫苗（需要接种多剂）</el-radio>
+            </el-radio-group>
+            <div class="tip-text" style="margin-top: 5px">
+              <span v-if="form.isMultiDose === 1" style="color: #e6a23c">
+                📋 多剂次疫苗需要设置总剂次数和间隔天数
+              </span>
+              <span v-else style="color: #67c23a">
+                ✅ 单剂次疫苗只需接种一次
+              </span>
+            </div>
+          </el-form-item>
+
+          <!-- 多剂次疫苗详细配置（选择多剂次时显示） -->
+          <template v-if="form.isMultiDose === 1">
+            <el-form-item label="总剂次数" prop="totalDoses">
+              <el-input-number
+                v-model="form.totalDoses"
+                :min="2"
+                :max="10"
+                style="width: 100%"
+                placeholder="请输入总剂次数"
+              />
+              <div class="tip-text">例如：乙肝疫苗3剂次，HPV疫苗3剂次</div>
+            </el-form-item>
+            <el-form-item label="间隔天数" prop="intervalDays">
+              <el-input-number
+                v-model="form.intervalDays"
+                :min="0"
+                :max="365"
+                style="width: 100%"
+                placeholder="请输入剂次间隔天数"
+              />
+              <div class="tip-text">
+                相邻两剂之间的间隔天数，如：28天、180天
+              </div>
+            </el-form-item>
+            <el-form-item label="接种计划描述" prop="doseSchedule">
+              <el-input
+                v-model="form.doseSchedule"
+                placeholder="例如：0,1,6月龄 或 第0、2、6个月"
+                maxlength="100"
+                show-word-limit
+              />
+              <div class="tip-text">选填，描述接种时间安排</div>
+            </el-form-item>
+          </template>
+        </template>
+
+        <!--  修改时显示提示信息（可选） -->
+        <template v-else>
+          <el-alert
+            title="提示"
+            type="info"
+            description="疫苗类型已在新增时确定，修改请删除后重新添加"
+            :closable="false"
+            show-icon
+            style="margin-bottom: 15px"
+          />
+        </template>
+
         <el-form-item label="状态" prop="status">
-          <el-select v-model="form.status" placeholder="请选择状态">
+          <el-select
+            v-model="form.status"
+            placeholder="请选择状态"
+            style="width: 100%"
+          >
             <el-option
               v-for="dict in dict.type.vaccine_status"
               :key="dict.value"
               :label="dict.label"
               :value="dict.value"
-            ></el-option>
+            />
           </el-select>
         </el-form-item>
       </el-form>
@@ -261,6 +381,7 @@ import {
   addVaccine,
   updateVaccine,
 } from "@/api/vaccine/vaccine";
+import { getTotalBooked } from "@/api/vaccine/appointment";
 
 export default {
   name: "Vaccine",
@@ -295,7 +416,7 @@ export default {
         suitableAge: null,
         stock: null,
         status: null,
-        suitableAge: undefined, // 添加这一行
+        isMultiDose: null, //  新增
       },
       // 表单参数
       form: {},
@@ -309,11 +430,27 @@ export default {
           { required: true, message: "请选择适用年龄", trigger: "change" },
         ],
         status: [{ required: true, message: "请选择状态", trigger: "change" }],
-
-        // stock: [
-        //   { required: true, message: "库存数量不能为空", trigger: "blur" },
-        //   { type: "number", message: "库存数量必须为数字", trigger: "blur" },
-        // ],
+        //  多剂次疫苗校验（新增）
+        totalDoses: [
+          { required: true, message: "请输入总剂次数", trigger: "blur" },
+          {
+            type: "number",
+            min: 2,
+            max: 10,
+            message: "剂次数应在2-10之间",
+            trigger: "blur",
+          },
+        ],
+        intervalDays: [
+          { required: true, message: "请输入间隔天数", trigger: "blur" },
+          {
+            type: "number",
+            min: 0,
+            max: 365,
+            message: "间隔天数应在0-365之间",
+            trigger: "blur",
+          },
+        ],
       },
     };
   },
@@ -332,11 +469,37 @@ export default {
       };
       return ageMap[value] || value || "-";
     },
-    /** 查询疫苗信息列表 */
+    handleVaccineTypeChange(val) {
+      if (val === 1) {
+        // 多剂次疫苗，初始化默认值
+        this.form.totalDoses = 3;
+        this.form.intervalDays = 28;
+        this.form.doseSchedule = "";
+      } else {
+        // 单剂次疫苗，清空多剂次字段
+        this.form.totalDoses = null;
+        this.form.intervalDays = null;
+        this.form.doseSchedule = "";
+      }
+      // 触发表单校验
+      this.$nextTick(() => {
+        if (this.$refs.form) {
+          this.$refs.form.clearValidate();
+        }
+      });
+    },
     getList() {
-      this.loading = true;
       listVaccine(this.queryParams).then((response) => {
         this.vaccineList = response.rows;
+        // 获取每个疫苗的总预约数
+        this.vaccineList.forEach((vaccine) => {
+          getTotalBooked(vaccine.id).then((res) => {
+            if (res.code === 200) {
+              // 使用 Vue.set 确保响应式更新
+              this.$set(vaccine, "totalBooked", res.data);
+            }
+          });
+        });
         this.total = response.total;
         this.loading = false;
       });
@@ -360,7 +523,11 @@ export default {
         createTime: null,
         updateBy: null,
         updateTime: null,
-        suitableAge: null,
+        // 多剂次字段
+        isMultiDose: 0,
+        totalDoses: null,
+        intervalDays: null,
+        doseSchedule: "",
       };
       this.resetForm("form");
     },
@@ -392,6 +559,10 @@ export default {
       const id = row.id || this.ids;
       getVaccine(id).then((response) => {
         this.form = response.data;
+        //  确保多剂次字段有默认值
+        if (this.form.isMultiDose !== 1) {
+          this.form.isMultiDose = 0;
+        }
         this.open = true;
         this.title = "修改疫苗信息";
       });
@@ -400,6 +571,18 @@ export default {
     submitForm() {
       this.$refs["form"].validate((valid) => {
         if (valid) {
+          //  多剂次疫苗额外校验
+          if (this.form.isMultiDose === 1) {
+            if (!this.form.totalDoses || this.form.totalDoses < 2) {
+              this.$message.error("多剂次疫苗总剂次数不能少于2");
+              return;
+            }
+            if (!this.form.intervalDays || this.form.intervalDays < 0) {
+              this.$message.error("请填写正确的间隔天数");
+              return;
+            }
+          }
+
           if (this.form.id != null) {
             updateVaccine(this.form).then((response) => {
               this.$modal.msgSuccess("修改成功");
@@ -419,9 +602,23 @@ export default {
     /** 删除按钮操作 */
     handleDelete(row) {
       const ids = row.id || this.ids;
+      const name = row.name || "选中的疫苗";
+
+      //  检查是否有预约记录
+      if (row.totalBooked && row.totalBooked > 0) {
+        this.$message.warning(
+          `疫苗【${name}】已有 ${row.totalBooked} 条预约记录，无法删除！`
+        );
+        return;
+      }
+
       this.$modal
-        .confirm('是否确认删除疫苗名称为"' + row.name + '"的数据项？')
-        .then(function () {
+        .confirm(`是否确认删除疫苗【${name}】？删除后无法恢复。`, "警告", {
+          confirmButtonText: "确定删除",
+          cancelButtonText: "取消",
+          type: "warning",
+        })
+        .then(() => {
           return delVaccine(ids);
         })
         .then(() => {
@@ -445,27 +642,17 @@ export default {
           },
         })
           .then((response) => {
-            // 检查返回的数据类型
-            // console.log(
-            //   "返回数据类型:",
-            //   response instanceof Blob ? "Blob" : typeof response
-            // );
-
-            // 创建Blob对象
             const blob = new Blob([response], {
               type: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
             });
-            // 创建下载链接
             const link = document.createElement("a");
             link.href = window.URL.createObjectURL(blob);
             link.download = `疫苗数据_${new Date().getTime()}.xlsx`;
 
-            // 触发下载
             document.body.appendChild(link);
             link.click();
             document.body.removeChild(link);
 
-            // 释放内存
             window.URL.revokeObjectURL(link.href);
 
             this.$modal.msgSuccess("导出成功");
@@ -479,3 +666,12 @@ export default {
   },
 };
 </script>
+
+<style scoped>
+.tip-text {
+  font-size: 12px;
+  color: #909399;
+  margin-top: 5px;
+  line-height: 1.2;
+}
+</style>

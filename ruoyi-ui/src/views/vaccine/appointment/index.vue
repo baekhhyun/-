@@ -81,6 +81,7 @@
       v-loading="loading"
       :data="appointmentList"
       @selection-change="handleSelectionChange"
+      row-key="id"
     >
       <el-table-column type="selection" width="55" align="center" />
       <el-table-column label="预约编号" align="center" prop="id" width="100" />
@@ -89,8 +90,7 @@
         align="center"
         prop="userName"
         width="120"
-      >
-      </el-table-column>
+      />
       <el-table-column
         label="疫苗信息"
         align="center"
@@ -104,6 +104,49 @@
           </el-tag>
         </template>
       </el-table-column>
+
+      <!-- 多剂次疫苗 - 剂次列 -->
+      <el-table-column label="剂次" align="center" width="100">
+        <template slot-scope="scope">
+          <!--  多剂次疫苗：有 doseNumber -->
+          <el-tag
+            v-if="scope.row.doseNumber"
+            size="small"
+            :type="getDoseTagType(scope.row)"
+          >
+            多剂次-第{{ scope.row.doseNumber }}剂
+          </el-tag>
+          <!--  单剂次疫苗：没有 doseNumber -->
+          <el-tag v-else size="small"> 单剂次 </el-tag>
+        </template>
+      </el-table-column>
+
+      <!-- 多剂次疫苗 - 接种状态列 -->
+      <el-table-column label="接种状态" align="center" width="100">
+        <template slot-scope="scope">
+          <!-- 已完成接种 -->
+          <el-tag v-if="scope.row.status === '2'" type="success" size="small">
+            已完成接种
+          </el-tag>
+          <!-- 已取消 -->
+          <el-tag v-else-if="scope.row.status === '3'" type="info" size="small">
+            已取消
+          </el-tag>
+          <!-- 待接种 -->
+          <el-tag v-else type="warning" size="small"> 待接种 </el-tag>
+        </template>
+      </el-table-column>
+
+      <!-- 多剂次疫苗 - 下一针日期列 -->
+      <el-table-column label="下一针日期" align="center" width="120">
+        <template slot-scope="scope">
+          <span v-if="scope.row.nextDoseDate">{{
+            parseDate(scope.row.nextDoseDate)
+          }}</span>
+          <span v-else>-</span>
+        </template>
+      </el-table-column>
+
       <el-table-column label="预约时间" align="center" width="180">
         <template slot-scope="scope">
           <div>{{ parseDate(scope.row.appointmentDate) }}</div>
@@ -160,6 +203,16 @@
             icon="el-icon-view"
             @click="handleView(scope.row.id)"
             >详情</el-button
+          >
+
+          <!-- 查看接种进度按钮（多剂次疫苗） -->
+          <el-button
+            v-if="scope.row.doseNumber"
+            size="mini"
+            type="text"
+            icon="el-icon-data-line"
+            @click="handleViewProgress(scope.row)"
+            >进度</el-button
           >
 
           <!-- 状态操作按钮 -->
@@ -258,6 +311,34 @@
             }}</el-form-item>
           </el-col>
         </el-row>
+
+        <!-- 多剂次疫苗信息展示 -->
+        <el-row v-if="form.doseNumber">
+          <el-col :span="12">
+            <el-form-item label="当前剂次">
+              <el-tag :type="getDoseTagType(form)">
+                第{{ form.doseNumber }}剂
+              </el-tag>
+            </el-form-item>
+          </el-col>
+          <el-col :span="12">
+            <el-form-item label="接种状态">
+              <el-tag v-if="form.isCompleted === 1" type="success"
+                >已完成接种</el-tag
+              >
+              <el-tag v-else type="warning">待接种</el-tag>
+            </el-form-item>
+          </el-col>
+        </el-row>
+
+        <el-row v-if="form.nextDoseDate">
+          <el-col :span="12">
+            <el-form-item label="下一针日期">{{
+              parseDate(form.nextDoseDate)
+            }}</el-form-item>
+          </el-col>
+        </el-row>
+
         <el-row>
           <el-col :span="12">
             <el-form-item label="适用人群">
@@ -302,6 +383,59 @@
       </div>
     </el-dialog>
 
+    <!-- 接种进度详情弹窗 -->
+    <el-dialog
+      :title="progressTitle"
+      :visible.sync="progressOpen"
+      width="500px"
+      append-to-body
+    >
+      <div v-if="progressAppointment">
+        <el-descriptions :column="1" border>
+          <el-descriptions-item label="用户">{{
+            progressAppointment.userName
+          }}</el-descriptions-item>
+          <el-descriptions-item label="疫苗">{{
+            progressAppointment.vaccineName
+          }}</el-descriptions-item>
+          <el-descriptions-item label="当前剂次">
+            <el-tag :type="getDoseTagType(progressAppointment)">
+              第{{ progressAppointment.doseNumber }}剂
+            </el-tag>
+          </el-descriptions-item>
+          <el-descriptions-item label="接种状态">
+            <el-tag v-if="progressAppointment.isCompleted === 1" type="success"
+              >已完成</el-tag
+            >
+            <el-tag
+              v-else-if="progressAppointment.status === '2'"
+              type="success"
+              >已完成</el-tag
+            >
+            <el-tag v-else type="warning">待接种</el-tag>
+          </el-descriptions-item>
+          <el-descriptions-item
+            label="下一针日期"
+            v-if="progressAppointment.nextDoseDate"
+          >
+            {{ parseDate(progressAppointment.nextDoseDate) }}
+          </el-descriptions-item>
+          <el-descriptions-item label="预约日期">{{
+            parseDate(progressAppointment.appointmentDate)
+          }}</el-descriptions-item>
+          <el-descriptions-item label="联系电话">{{
+            progressAppointment.userPhone || progressAppointment.phone
+          }}</el-descriptions-item>
+          <el-descriptions-item label="备注">{{
+            progressAppointment.remark || "无"
+          }}</el-descriptions-item>
+        </el-descriptions>
+      </div>
+      <span slot="footer" class="dialog-footer">
+        <el-button @click="progressOpen = false">关 闭</el-button>
+      </span>
+    </el-dialog>
+
     <!-- 状态操作确认对话框 -->
     <el-dialog
       :title="statusTitle"
@@ -322,6 +456,18 @@
         <el-form-item label="疫苗名称">{{
           currentAppointment.vaccineName
         }}</el-form-item>
+        <!-- 多剂次疫苗提示 -->
+        <el-form-item v-if="currentAppointment.doseNumber" label="当前剂次">
+          <el-tag size="small" :type="getDoseTagType(currentAppointment)">
+            第{{ currentAppointment.doseNumber }}剂
+          </el-tag>
+          <span
+            v-if="currentAppointment.nextDoseDate"
+            style="margin-left: 10px; color: #909399"
+          >
+            完成后下一针日期：{{ parseDate(currentAppointment.nextDoseDate) }}
+          </span>
+        </el-form-item>
         <el-form-item label="预约时间">
           {{ parseDate(currentAppointment.appointmentDate) }}
           {{ formatTimeSlot(currentAppointment.timeSlot) }}
@@ -349,7 +495,8 @@ import {
   getAppointment,
   updateAppointment,
   delAppointment,
-  exportAppointment,
+  confirmAppointment,
+  completeAppointment,
 } from "@/api/vaccine/appointment";
 import { parseTime } from "@/utils/ruoyi";
 
@@ -398,6 +545,11 @@ export default {
       currentAppointment: {},
       statusOperation: "",
 
+      // 接种进度弹窗
+      progressOpen: false,
+      progressTitle: "",
+      progressAppointment: {},
+
       // 状态映射
       statusMap: {
         0: { text: "待确认", type: "warning", next: "1", operation: "确认" },
@@ -416,8 +568,6 @@ export default {
       this.loading = true;
       listAppointment(this.queryParams)
         .then((response) => {
-          // console.log("获取到的数据:", response); // 调试用
-          // console.log("第一条数据详情:", response.rows[0]); // 查看数据结构
           this.appointmentList = response.rows;
           this.total = response.total;
           this.loading = false;
@@ -442,14 +592,13 @@ export default {
 
     /** 多选框选中数据 */
     handleSelectionChange(selection) {
-      this.ids = selection.map((item) => item.appointmentId);
+      this.ids = selection.map((item) => item.id);
       this.single = selection.length !== 1;
       this.multiple = !selection.length;
     },
 
     /** 查看按钮操作 */
     handleView(id) {
-      // console.log("查看详情，ID:", id); // 调试用
       if (!id) {
         this.$message.error("无效的预约ID");
         return;
@@ -466,6 +615,21 @@ export default {
         });
     },
 
+    /** 查看接种进度 */
+    handleViewProgress(row) {
+      this.progressAppointment = row;
+      this.progressTitle = `${row.userName} - ${row.vaccineName} 接种进度`;
+      this.progressOpen = true;
+    },
+
+    /** 获取剂次标签类型 */
+    getDoseTagType(row) {
+      if (row.isMultiDose === 1) {
+        return "warning"; // 多剂次 - 橙色
+      }
+      return "success"; // 单剂次 - 绿色
+    },
+
     /** 确认预约操作 */
     handleConfirm(row) {
       this.currentAppointment = row;
@@ -475,30 +639,123 @@ export default {
       this.statusOpen = true;
     },
 
-    /** 完成预约操作 */
+    /** 完成接种操作 */
+    /** 完成接种操作 */
     handleComplete(row) {
-      this.currentAppointment = row;
-      this.statusOperation = "完成预约";
-      this.statusTitle = "完成预约";
-      this.statusForm.remark = "";
-      this.statusOpen = true;
+      //  检查预约日期
+      const today = new Date();
+      today.setHours(0, 0, 0, 0);
+
+      const appointmentDate = new Date(row.appointmentDate);
+      appointmentDate.setHours(0, 0, 0, 0);
+
+      // 计算日期差
+      const diffDays = Math.ceil(
+        (appointmentDate - today) / (1000 * 60 * 60 * 24)
+      );
+
+      let confirmMessage = "";
+      let confirmTitle = "";
+      let confirmType = "";
+
+      // 格式化日期
+      const formatDate = (date) => {
+        const d = new Date(date);
+        return `${d.getFullYear()}年${d.getMonth() + 1}月${d.getDate()}日`;
+      };
+
+      //  构建疫苗和剂次信息
+      let vaccineInfo = row.vaccineName;
+      if (row.doseNumber) {
+        vaccineInfo = `${row.vaccineName}（第${row.doseNumber}剂）`;
+      }
+
+      if (diffDays > 0) {
+        // 预约日期在未来（还没到接种日期）
+        confirmTitle = "⚠️ 提前完成提醒";
+        confirmType = "warning";
+        confirmMessage = `
+      <div style="line-height: 1.8;">
+        <p><strong style="color: #e6a23c;">接种日期还未到！</strong></p>
+        <p>预约接种日期：${formatDate(row.appointmentDate)}</p>
+        <p>当前日期：${formatDate(today)}</p>
+        <p>距离接种还有 <strong style="color: #e6a23c; font-size: 16px;">${diffDays}</strong> 天</p>
+        <p>疫苗：${vaccineInfo}</p>
+        <p>用户：${row.userName}</p>
+        <p style="color: #909399; margin-top: 10px;">确定要提前完成接种吗？</p>
+      </div>
+    `;
+      } else if (diffDays < 0) {
+        // 预约日期已过期
+        confirmTitle = "⚠️ 过期接种提醒";
+        confirmType = "warning";
+        confirmMessage = `
+      <div style="line-height: 1.8;">
+        <p><strong style="color: #f56c6c;">预约日期已过期！</strong></p>
+        <p>预约接种日期：${formatDate(row.appointmentDate)}</p>
+        <p>当前日期：${formatDate(today)}</p>
+        <p>已过期 <strong style="color: #f56c6c; font-size: 16px;">${Math.abs(
+          diffDays
+        )}</strong> 天</p>
+        <p>疫苗：${vaccineInfo}</p>
+        <p>用户：${row.userName}</p>
+        <p style="color: #909399; margin-top: 10px;">确定要完成这个过期的接种吗？</p>
+      </div>
+    `;
+      } else {
+        // 预约日期就是今天
+        confirmTitle = "完成接种";
+        confirmType = "info";
+        confirmMessage = `
+      <div style="line-height: 1.8;">
+        <p>接种日期：${formatDate(row.appointmentDate)}</p>
+        <p>疫苗：${vaccineInfo}</p>
+        <p>用户：${row.userName}</p>
+        <p style="color: #67c23a;">确认已完成接种吗？</p>
+      </div>
+    `;
+      }
+
+      this.$confirm(confirmMessage, confirmTitle, {
+        confirmButtonText: "确认完成",
+        cancelButtonText: "取消",
+        type: confirmType,
+        dangerouslyUseHTMLString: true,
+        distinguishCancelAndClose: true,
+      })
+        .then(() => {
+          this.$set(row, "loading", true);
+          completeAppointment(row.id)
+            .then(() => {
+              this.$message.success("完成接种成功");
+              this.getList();
+            })
+            .finally(() => {
+              this.$set(row, "loading", false);
+            });
+        })
+        .catch(() => {});
     },
 
-    /** 取消预约操作（管理员取消） */
+    /** 取消预约操作 */
     handleCancel(row) {
-      this.$confirm("确定要取消此预约吗？", "提示", {
+      let message = "确定要取消此预约吗？";
+      if (row.doseNumber) {
+        message = `确定要取消第${row.doseNumber}剂次的预约吗？取消后需要重新预约。`;
+      }
+
+      this.$confirm(message, "提示", {
         confirmButtonText: "确定",
         cancelButtonText: "取消",
         type: "warning",
       })
         .then(() => {
-          const id = row.id || row.appointmentId;
+          const id = row.id;
           const data = {
-            id: id, // 提交时使用 id
+            id: id,
             status: "3",
             remark: row.remark + "（管理员取消）",
           };
-          // console.log("取消预约数据:", data); // 调试用
           updateAppointment(data).then((response) => {
             if (response.code === 200) {
               this.$message.success("取消成功");
@@ -511,66 +768,105 @@ export default {
 
     /** 提交状态变更 */
     submitStatusChange() {
-      // console.log("=== 状态变更调试 ===");
-      // console.log("当前预约对象:", this.currentAppointment);
-      // console.log("当前状态:", this.currentAppointment.status);
-      // console.log(
-      //   "下一状态:",
-      //   this.statusMap[this.currentAppointment.status]?.next
-      // );
+      // console.log("===== 提交状态变更 =====");
+      // console.log("当前操作:", this.statusOperation);
+      // console.log("当前预约:", this.currentAppointment);
 
-      const nextStatus = this.statusMap[this.currentAppointment.status].next;
-      if (!nextStatus) {
-        this.$message.error("当前状态不可操作");
+      // 根据操作类型调用不同的API
+      if (this.statusOperation === "确认预约") {
+        // console.log("调用确认API，ID:", this.currentAppointment.id);
+        confirmAppointment(this.currentAppointment.id)
+          .then((response) => {
+            // console.log("确认API响应:", response);
+            if (response.code === 200) {
+              this.$message.success("确认成功");
+              this.statusOpen = false;
+              this.getList();
+            } else {
+              this.$message.error(response.msg || "操作失败");
+            }
+          })
+          .catch((error) => {
+            console.error("确认失败:", error);
+            this.$message.error("操作失败");
+          });
+      } else if (this.statusOperation.includes("完成")) {
+        // console.log("调用完成接种API，ID:", this.currentAppointment.id);
+        completeAppointment(this.currentAppointment.id)
+          .then((response) => {
+            // console.log("完成接种API响应:", response);
+            if (response.code === 200) {
+              this.$message.success("完成接种成功");
+              this.statusOpen = false;
+              this.getList();
+              this.$emit("refresh-pending-count");
+            } else {
+              this.$message.error(response.msg || "操作失败");
+            }
+          })
+          .catch((error) => {
+            console.error("完成接种失败:", error);
+            this.$message.error("操作失败");
+          });
+      } else {
+        // 取消或其他操作
+        const nextStatus = this.statusMap[this.currentAppointment.status]?.next;
+        if (!nextStatus) {
+          this.$message.error("当前状态不可操作");
+          return;
+        }
+
+        const data = {
+          id: this.currentAppointment.id,
+          status: nextStatus,
+          remark: this.currentAppointment.remark || "",
+        };
+        if (this.statusForm.remark) {
+          data.remark += ` [${this.statusOperation}: ${this.statusForm.remark}]`;
+        }
+        updateAppointment(data)
+          .then((response) => {
+            if (response.code === 200) {
+              this.$message.success(`${this.statusOperation}成功`);
+              this.statusOpen = false;
+              this.getList();
+            } else {
+              this.$message.error(response.msg || "操作失败");
+            }
+          })
+          .catch((error) => {
+            console.error("操作失败:", error);
+            this.$message.error("操作失败");
+          });
+      }
+    },
+    /** 删除按钮操作 */
+    handleDelete(row) {
+      const appointmentId = row.id;
+      const vaccineName = row.vaccineName;
+
+      //  根据状态给出不同的提示
+      let message = "";
+      let title = "提示";
+
+      if (row.status === "3") {
+        message = `确认删除已取消的预约（${vaccineName}）吗？删除后不可恢复。`;
+        title = "删除已取消预约";
+      } else {
+        // 如果不是已取消状态，提示用户先取消
+        message = `该预约状态为"${this.formatStatus(
+          row.status
+        )}"，只有已取消的预约才能删除。请先取消预约后再删除。`;
+        this.$message.warning(message);
         return;
       }
 
-      const data = {
-        id: this.currentAppointment.id,
-        status: nextStatus,
-        remark: this.currentAppointment.remark || "",
-      };
-
-      // 添加操作备注
-      if (this.statusForm.remark) {
-        data.remark += ` [${this.statusOperation}: ${this.statusForm.remark}]`;
-      }
-
-      // console.log("提交的数据:", JSON.stringify(data));
-
-      updateAppointment(data)
-        .then((response) => {
-          console.log("API响应:", response);
-          if (response.code === 200) {
-            this.$message.success(`${this.statusOperation}成功`);
-            this.statusOpen = false;
-            this.getList();
-          } else {
-            this.$message.error(response.msg || "操作失败");
-          }
-        })
-        .catch((error) => {
-          console.error("API错误详情:", error);
-          console.error("错误响应:", error.response);
-          this.$message.error(`操作失败: ${error.message}`);
-        });
-    },
-
-    /** 删除按钮操作 */
-    handleDelete(row) {
-      // console.log("删除预约，ID:", row.id); // 调试用
-      const appointmentId = row.id;
-      this.$confirm(
-        '是否确认删除预约编号为"' + appointmentId + '"的数据项？',
-        "警告",
-        {
-          confirmButtonText: "确定",
-          cancelButtonText: "取消",
-          type: "warning",
-        }
-      )
+      this.$confirm(message, title, {
+        confirmButtonText: "确定删除",
+        cancelButtonText: "取消",
+        type: "warning",
+      })
         .then(() => {
-          // 注意：delAppointment方法应该接收单个id
           return delAppointment(appointmentId);
         })
         .then(() => {
@@ -580,7 +876,7 @@ export default {
         .catch((error) => {
           console.error("删除失败:", error);
           if (error !== "cancel") {
-            this.$message.error("删除失败");
+            this.$message.error(error.msg || "删除失败");
           }
         });
     },
@@ -595,8 +891,6 @@ export default {
         `预约数据_${new Date().getTime()}.xlsx`
       );
     },
-
-    // ============ 工具方法 ============
 
     /** 格式化状态 */
     formatStatus(status) {
@@ -645,6 +939,14 @@ export default {
     /** 解析日期 */
     parseDate(dateStr) {
       if (!dateStr) return "";
+      // 处理 ISO 8601 格式
+      if (dateStr.includes("T")) {
+        const date = new Date(dateStr);
+        const year = date.getFullYear();
+        const month = String(date.getMonth() + 1).padStart(2, "0");
+        const day = String(date.getDate()).padStart(2, "0");
+        return `${year}-${month}-${day}`;
+      }
       return dateStr.substring(0, 10);
     },
 
@@ -673,12 +975,10 @@ export default {
   width: 220px;
 }
 
-/* 状态标签样式 */
 .el-tag {
   margin: 2px;
 }
 
-/* 表格行状态颜色 */
 .el-table .warning-row {
   background: #fdf6ec;
 }

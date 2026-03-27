@@ -1,19 +1,11 @@
 package com.ruoyi.vaccine.domain;
 
+import com.ruoyi.common.annotation.Excel;
+import com.ruoyi.common.core.domain.BaseEntity;
 import org.apache.commons.lang3.builder.ToStringBuilder;
 import org.apache.commons.lang3.builder.ToStringStyle;
-import com.ruoyi.common.annotation.Excel;
-import javax.validation.constraints.Size;
-import com.ruoyi.common.core.domain.BaseEntity;
 
-/**
- * 疫苗信息对象 vaccine_information
- *
- * @author jzx
- * @date 2026-02-08
- */
-public class VaccineInformation extends BaseEntity
-{
+public class VaccineInformation extends BaseEntity {
     private static final long serialVersionUID = 1L;
 
     /** 疫苗ID */
@@ -27,107 +19,84 @@ public class VaccineInformation extends BaseEntity
     @Excel(name = "生产厂家")
     private String manufacturer;
 
-    /** 疫苗描述 */
-    @Excel(name = "疫苗描述")
-    private String description;
-
-    /** 适用年龄 */
+    /** 适用年龄（1婴儿,2儿童,3青少年,4成人,5老人） */
     @Excel(name = "适用年龄", readConverterExp = "1=婴儿,2=儿童,3=青少年,4=成人,5=老人")
-    @Size(min = 1, max = 10, message = "适用年龄长度必须在1到10个字符之间")
     private String suitableAge;
 
-    /** 库存数量 */
-    @Excel(name = "库存数量")
-    private Long stock;
+    /** 库存 */
+    @Excel(name = "库存")
+    private Integer stock;
 
-    /** 状态 */
-    @Excel(name = "状态",readConverterExp = "0=正常,1=停用")
+    /** 状态（0正常 1停用） */
+    @Excel(name = "状态", readConverterExp = "0=正常,1=停用")
     private String status;
 
-    public void setId(Long id)
-    {
-        this.id = id;
-    }
+    /** 描述 */
+    @Excel(name = "描述")
+    private String description;
 
-    public Long getId()
-    {
-        return id;
-    }
+    // ========== 新增多剂次字段 ==========
+    /** 是否多剂次疫苗（0否 1是） */
+    @Excel(name = "是否多剂次", readConverterExp = "0=否,1=是")
+    private Integer isMultiDose;
 
-    public void setName(String name)
-    {
-        this.name = name;
-    }
+    /** 总剂次数 */
+    @Excel(name = "总剂次数")
+    private Integer totalDoses;
 
-    public String getName()
-    {
-        return name;
-    }
+    /** 剂次间隔天数 */
+    @Excel(name = "间隔天数")
+    private Integer intervalDays;
 
-    public void setManufacturer(String manufacturer)
-    {
-        this.manufacturer = manufacturer;
-    }
+    /** 接种计划描述 */
+    @Excel(name = "接种计划")
+    private String doseSchedule;
 
-    public String getManufacturer()
-    {
-        return manufacturer;
-    }
-
-    public void setDescription(String description)
-    {
-        this.description = description;
-    }
-
-    public String getDescription()
-    {
-        return description;
-    }
-
+    // getter/setter...
+    public Long getId() { return id; }
+    public void setId(Long id) { this.id = id; }
+    public String getName() { return name; }
+    public void setName(String name) { this.name = name; }
+    public String getManufacturer() { return manufacturer; }
+    public void setManufacturer(String manufacturer) { this.manufacturer = manufacturer; }
+    public String getSuitableAge() { return suitableAge; }
     public void setSuitableAge(String suitableAge)
     {
         this.suitableAge = suitableAge;
     }
-
-    public String getSuitableAge()
-    {
-        return suitableAge;
-    }
-
-    public void setStock(Long stock)
-    {
-        this.stock = stock;
-    }
-
-    public Long getStock()
-    {
-        return stock;
-    }
-
-    public void setStatus(String status)
-    {
-        this.status = status;
-    }
-
-    public String getStatus()
-    {
-        return status;
-    }
+    public Integer getStock() { return stock; }
+    public void setStock(Integer stock) { this.stock = stock; }
+    public String getStatus() { return status; }
+    public void setStatus(String status) { this.status = status; }
+    public String getDescription() { return description; }
+    public void setDescription(String description) { this.description = description; }
+    public Integer getIsMultiDose() { return isMultiDose; }
+    public void setIsMultiDose(Integer isMultiDose) { this.isMultiDose = isMultiDose; }
+    public Integer getTotalDoses() { return totalDoses; }
+    public void setTotalDoses(Integer totalDoses) { this.totalDoses = totalDoses; }
+    public Integer getIntervalDays() { return intervalDays; }
+    public void setIntervalDays(Integer intervalDays) { this.intervalDays = intervalDays; }
+    public String getDoseSchedule() { return doseSchedule; }
+    public void setDoseSchedule(String doseSchedule) { this.doseSchedule = doseSchedule; }
 
     @Override
     public String toString() {
-        return new ToStringBuilder(this,ToStringStyle.MULTI_LINE_STYLE)
-            .append("id", getId())
-            .append("name", getName())
-            .append("manufacturer", getManufacturer())
-            .append("description", getDescription())
-            .append("suitableAge", getSuitableAge())
-            .append("stock", getStock())
-            .append("status", getStatus())
-            .append("createBy", getCreateBy())
-            .append("createTime", getCreateTime())
-            .append("updateBy", getUpdateBy())
-            .append("updateTime", getUpdateTime())
-            .toString();
+        return new ToStringBuilder(this, ToStringStyle.MULTI_LINE_STYLE)
+                .append("id", getId())
+                .append("name", getName())
+                .append("manufacturer", getManufacturer())
+                .append("suitableAge", getSuitableAge())
+                .append("stock", getStock())
+                .append("status", getStatus())
+                .append("description", getDescription())
+                .append("isMultiDose", getIsMultiDose())
+                .append("totalDoses", getTotalDoses())
+                .append("intervalDays", getIntervalDays())
+                .append("doseSchedule", getDoseSchedule())
+                .append("createBy", getCreateBy())
+                .append("createTime", getCreateTime())
+                .append("updateBy", getUpdateBy())
+                .append("updateTime", getUpdateTime())
+                .toString();
     }
 }

@@ -1,41 +1,56 @@
 <?xml version="1.0" encoding="UTF-8" ?>
 <!DOCTYPE mapper
-PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
-"http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+        PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
 <mapper namespace="com.ruoyi.vaccine.mapper.VaccineInformationMapper">
-    
+
     <resultMap type="VaccineInformation" id="VaccineInformationResult">
         <result property="id"    column="id"    />
         <result property="name"    column="name"    />
         <result property="manufacturer"    column="manufacturer"    />
-        <result property="description"    column="description"    />
         <result property="suitableAge"    column="suitable_age"    />
         <result property="stock"    column="stock"    />
         <result property="status"    column="status"    />
+        <result property="description"    column="description"    />
         <result property="createBy"    column="create_by"    />
         <result property="createTime"    column="create_time"    />
         <result property="updateBy"    column="update_by"    />
         <result property="updateTime"    column="update_time"    />
+        <!-- 多剂次疫苗字段 -->
+        <result property="isMultiDose"    column="is_multi_dose"    />
+        <result property="totalDoses"    column="total_doses"    />
+        <result property="intervalDays"    column="interval_days"    />
+        <result property="doseSchedule"    column="dose_schedule"    />
     </resultMap>
 
     <sql id="selectVaccineInformationVo">
-        select id, name, manufacturer, description, suitable_age, stock, status, create_by, create_time, update_by, update_time from vaccine_information
+        select id, name, manufacturer, suitable_age, stock, status, description, create_by, create_time, update_by, update_time,
+        is_multi_dose, total_doses, interval_days, dose_schedule
+        from vaccine_information
     </sql>
 
     <select id="selectVaccineInformationList" parameterType="VaccineInformation" resultMap="VaccineInformationResult">
         <include refid="selectVaccineInformationVo"/>
-        <where>  
-            <if test="name != null  and name != ''"> and name like concat('%', #{name}, '%')</if>
+        <where>
+            <if test="name != null and name != ''">
+                AND name like concat('%', #{name}, '%')
+            </if>
             <if test="manufacturer != null and manufacturer != ''">
                 AND manufacturer like concat('%', #{manufacturer}, '%')
             </if>
-            <if test="description != null  and description != ''"> and description = #{description}</if>
-            <if test="suitableAge != null  and suitableAge != ''"> and suitable_age = #{suitableAge}</if>
-            <if test="stock != null "> and stock = #{stock}</if>
-            <if test="status != null  and status != ''"> and status = #{status}</if>
+            <if test="suitableAge != null">
+                AND suitable_age = #{suitableAge}
+            </if>
+            <if test="status != null and status != ''">
+                AND status = #{status}
+            </if>
+            <if test="isMultiDose != null">
+                AND is_multi_dose = #{isMultiDose}
+            </if>
         </where>
+        ORDER BY create_time DESC
     </select>
-    
+
     <select id="selectVaccineInformationById" parameterType="Long" resultMap="VaccineInformationResult">
         <include refid="selectVaccineInformationVo"/>
         where id = #{id}
@@ -45,43 +60,56 @@ PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
         insert into vaccine_information
         <trim prefix="(" suffix=")" suffixOverrides=",">
             <if test="name != null and name != ''">name,</if>
-            <if test="manufacturer != null">manufacturer,</if>
-            <if test="description != null">description,</if>
+            <if test="manufacturer != null and manufacturer != ''">manufacturer,</if>
             <if test="suitableAge != null">suitable_age,</if>
             <if test="stock != null">stock,</if>
-            <if test="status != null">status,</if>
-            <if test="createBy != null">create_by,</if>
+            <if test="status != null and status != ''">status,</if>
+            <if test="description != null and description != ''">description,</if>
+            <if test="createBy != null and createBy != ''">create_by,</if>
             <if test="createTime != null">create_time,</if>
-            <if test="updateBy != null">update_by,</if>
+            <if test="updateBy != null and updateBy != ''">update_by,</if>
             <if test="updateTime != null">update_time,</if>
-         </trim>
+            <!-- 多剂次字段 -->
+            <if test="isMultiDose != null">is_multi_dose,</if>
+            <if test="totalDoses != null">total_doses,</if>
+            <if test="intervalDays != null">interval_days,</if>
+            <if test="doseSchedule != null and doseSchedule != ''">dose_schedule,</if>
+        </trim>
         <trim prefix="values (" suffix=")" suffixOverrides=",">
             <if test="name != null and name != ''">#{name},</if>
-            <if test="manufacturer != null">#{manufacturer},</if>
-            <if test="description != null">#{description},</if>
+            <if test="manufacturer != null and manufacturer != ''">#{manufacturer},</if>
             <if test="suitableAge != null">#{suitableAge},</if>
             <if test="stock != null">#{stock},</if>
-            <if test="status != null">#{status},</if>
-            <if test="createBy != null">#{createBy},</if>
+            <if test="status != null and status != ''">#{status},</if>
+            <if test="description != null and description != ''">#{description},</if>
+            <if test="createBy != null and createBy != ''">#{createBy},</if>
             <if test="createTime != null">#{createTime},</if>
-            <if test="updateBy != null">#{updateBy},</if>
+            <if test="updateBy != null and updateBy != ''">#{updateBy},</if>
             <if test="updateTime != null">#{updateTime},</if>
-         </trim>
+            <!-- 多剂次字段值 -->
+            <if test="isMultiDose != null">#{isMultiDose},</if>
+            <if test="totalDoses != null">#{totalDoses},</if>
+            <if test="intervalDays != null">#{intervalDays},</if>
+            <if test="doseSchedule != null and doseSchedule != ''">#{doseSchedule},</if>
+        </trim>
     </insert>
 
     <update id="updateVaccineInformation" parameterType="VaccineInformation">
         update vaccine_information
         <trim prefix="SET" suffixOverrides=",">
             <if test="name != null and name != ''">name = #{name},</if>
-            <if test="manufacturer != null">manufacturer = #{manufacturer},</if>
-            <if test="description != null">description = #{description},</if>
+            <if test="manufacturer != null and manufacturer != ''">manufacturer = #{manufacturer},</if>
             <if test="suitableAge != null">suitable_age = #{suitableAge},</if>
             <if test="stock != null">stock = #{stock},</if>
-            <if test="status != null">status = #{status},</if>
-            <if test="createBy != null">create_by = #{createBy},</if>
-            <if test="createTime != null">create_time = #{createTime},</if>
-            <if test="updateBy != null">update_by = #{updateBy},</if>
+            <if test="status != null and status != ''">status = #{status},</if>
+            <if test="description != null and description != ''">description = #{description},</if>
+            <if test="updateBy != null and updateBy != ''">update_by = #{updateBy},</if>
             <if test="updateTime != null">update_time = #{updateTime},</if>
+            <!-- 多剂次字段 -->
+            <if test="isMultiDose != null">is_multi_dose = #{isMultiDose},</if>
+            <if test="totalDoses != null">total_doses = #{totalDoses},</if>
+            <if test="intervalDays != null">interval_days = #{intervalDays},</if>
+            <if test="doseSchedule != null and doseSchedule != ''">dose_schedule = #{doseSchedule},</if>
         </trim>
         where id = #{id}
     </update>
@@ -91,9 +119,198 @@ PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
     </delete>
 
     <delete id="deleteVaccineInformationByIds" parameterType="String">
-        delete from vaccine_information where id in 
+        delete from vaccine_information where id in
         <foreach item="id" collection="array" open="(" separator="," close=")">
             #{id}
         </foreach>
     </delete>
+
+    <!-- ==================== 库存相关方法 ==================== -->
+
+    <!-- 更新疫苗库存 -->
+    <update id="updateStock">
+        update vaccine_information
+        set stock = stock + #{delta}
+        where id = #{vaccineId}
+        and stock + #{delta} >= 0
+    </update>
+
+    <!-- 查询疫苗库存 -->
+    <select id="selectStock" parameterType="Long" resultType="java.lang.Integer">
+        select stock
+        from vaccine_information
+        where id = #{vaccineId}
+    </select>
+
+    <!-- 检查库存是否足够 -->
+    <select id="checkStock" resultType="java.lang.Integer">
+        select count(*)
+        from vaccine_information
+        where id = #{vaccineId}
+        and stock >= #{needCount}
+    </select>
+
+    <!-- ==================== 多剂次疫苗新增方法 ==================== -->
+
+    <!-- 查询所有多剂次疫苗 -->
+    <select id="selectMultiDoseVaccines" resultMap="VaccineInformationResult">
+        <include refid="selectVaccineInformationVo"/>
+        where is_multi_dose = 1
+        and status = '0'
+        ORDER BY create_time DESC
+    </select>
+
+    <!-- 根据疫苗名称查询 -->
+    <select id="selectVaccineByName" parameterType="String" resultMap="VaccineInformationResult">
+        <include refid="selectVaccineInformationVo"/>
+        where name = #{name}
+        limit 1
+    </select>
+
+    <!-- 查询疫苗总数 -->
+    <select id="selectVaccineCount" resultType="java.lang.Integer">
+        select count(*) from vaccine_information where status = '0'
+    </select>
+
+    <!-- 查询在售疫苗数量 -->
+    <select id="selectActiveVaccineCount" resultType="java.lang.Integer">
+        select count(*) from vaccine_information where status = '0'
+    </select>
+
+    <!-- 查询低库存疫苗（库存小于阈值） -->
+    <select id="selectLowStockVaccines" parameterType="java.lang.Integer" resultMap="VaccineInformationResult">
+        <include refid="selectVaccineInformationVo"/>
+        where stock &lt; #{threshold}
+        and status = '0'
+        ORDER BY stock ASC
+    </select>
+
+    <!-- 统计各年龄段的疫苗数量 -->
+    <select id="selectVaccineCountByAge" resultType="java.util.Map">
+        SELECT
+        CASE suitable_age
+        WHEN 1 THEN '婴儿'
+        WHEN 2 THEN '儿童'
+        WHEN 3 THEN '青少年'
+        WHEN 4 THEN '成人'
+        WHEN 5 THEN '老人'
+        ELSE '其他'
+        END as ageGroup,
+        COUNT(*) as count
+        FROM vaccine_information
+        WHERE status = '0'
+        GROUP BY suitable_age
+        ORDER BY suitable_age ASC
+    </select>
+
+    <!-- 批量更新疫苗状态 -->
+    <update id="batchUpdateStatus">
+        update vaccine_information
+        set status = #{status},
+        update_time = NOW()
+        where id in
+        <foreach item="id" collection="ids" open="(" separator="," close=")">
+            #{id}
+        </foreach>
+    </update>
+
+    <!-- 查询热门疫苗TopN（按预约量） -->
+    <select id="selectHotVaccines" resultType="java.util.Map">
+        SELECT
+        v.id as vaccineId,
+        v.name as vaccineName,
+        v.manufacturer as manufacturer,
+        v.stock as stock,
+        COUNT(a.id) as appointmentCount
+        FROM vaccine_information v
+        LEFT JOIN vaccine_appointment a ON v.id = a.vaccine_id AND a.status IN ('1', '2')
+        WHERE v.status = '0'
+        GROUP BY v.id, v.name, v.manufacturer, v.stock
+        ORDER BY appointmentCount DESC
+        LIMIT #{limit}
+    </select>
+
+    <!-- 查询疫苗消耗统计（用于仪表盘） -->
+    <select id="selectVaccineConsumption" resultType="java.util.Map">
+        SELECT
+        v.id as vaccineId,
+        v.name as vaccineName,
+        v.stock as totalStock,
+        COALESCE(SUM(CASE WHEN a.status IN ('1', '2') THEN 1 ELSE 0 END), 0) as usedCount,
+        (v.stock - COALESCE(SUM(CASE WHEN a.status IN ('1', '2') THEN 1 ELSE 0 END), 0)) as remainingStock,
+        ROUND(COALESCE(SUM(CASE WHEN a.status IN ('1', '2') THEN 1 ELSE 0 END) * 100.0 / v.stock, 0), 1) as usageRate
+        FROM vaccine_information v
+        LEFT JOIN vaccine_appointment a ON v.id = a.vaccine_id
+        WHERE v.status = '0'
+        GROUP BY v.id, v.name, v.stock
+        ORDER BY usageRate DESC
+    </select>
+
+    <!-- 根据适用年龄分类查询疫苗 -->
+    <select id="selectVaccineByAgeType" parameterType="java.lang.Integer" resultMap="VaccineInformationResult">
+        <include refid="selectVaccineInformationVo"/>
+        where suitable_age = #{ageType}
+        and status = '0'
+        ORDER BY create_time DESC
+    </select>
+
+    <!-- 批量插入疫苗（用于初始化数据） -->
+    <insert id="batchInsert" parameterType="java.util.List">
+        insert into vaccine_information (name, manufacturer, suitable_age, stock, status, description,
+        is_multi_dose, total_doses, interval_days, dose_schedule, create_time)
+        values
+        <foreach collection="list" item="item" separator=",">
+            (#{item.name}, #{item.manufacturer}, #{item.suitableAge}, #{item.stock}, #{item.status}, #{item.description},
+            #{item.isMultiDose}, #{item.totalDoses}, #{item.intervalDays}, #{item.doseSchedule}, NOW())
+        </foreach>
+    </insert>
+
+    <!-- 按生产厂家统计疫苗数量 -->
+    <select id="selectVaccineCountByManufacturer" resultType="java.util.Map">
+        SELECT
+        manufacturer,
+        COUNT(*) as count
+        FROM vaccine_information
+        WHERE status = '0'
+        GROUP BY manufacturer
+        ORDER BY count DESC
+    </select>
+
+    <!-- 搜索疫苗（支持多字段模糊匹配） -->
+    <select id="searchVaccine" parameterType="String" resultMap="VaccineInformationResult">
+        <include refid="selectVaccineInformationVo"/>
+        <where>
+            status = '0'
+            <if test="keyword != null and keyword != ''">
+                AND (name like concat('%', #{keyword}, '%')
+                OR manufacturer like concat('%', #{keyword}, '%')
+                OR description like concat('%', #{keyword}, '%'))
+            </if>
+        </where>
+        ORDER BY create_time DESC
+        LIMIT #{limit}
+    </select>
+
+    <!-- 获取疫苗预约统计（按日期范围） -->
+    <select id="selectVaccineAppointmentStats" resultType="java.util.Map">
+        SELECT
+        v.id as vaccineId,
+        v.name as vaccineName,
+        COUNT(CASE WHEN a.status IN ('1', '2') THEN 1 END) as completedCount,
+        COUNT(CASE WHEN a.status = '0' THEN 1 END) as pendingCount,
+        COUNT(CASE WHEN a.status = '3' THEN 1 END) as cancelledCount
+        FROM vaccine_information v
+        LEFT JOIN vaccine_appointment a ON v.id = a.vaccine_id
+        <where>
+            <if test="beginDate != null and beginDate != ''">
+                AND a.appointment_date >= #{beginDate}
+            </if>
+            <if test="endDate != null and endDate != ''">
+                AND a.appointment_date &lt;= #{endDate}
+            </if>
+        </where>
+        GROUP BY v.id, v.name
+        ORDER BY completedCount DESC
+    </select>
+
 </mapper>

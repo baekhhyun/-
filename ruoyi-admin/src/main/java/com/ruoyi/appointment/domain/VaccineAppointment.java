@@ -9,8 +9,6 @@ import com.ruoyi.common.core.domain.BaseEntity;
 
 /**
  * 疫苗预约对象 vaccine_appointment
- *
- * @author jzx
  * @date 2026-02-08
  */
 public class VaccineAppointment extends BaseEntity
@@ -59,6 +57,16 @@ public class VaccineAppointment extends BaseEntity
     /** 用户手机号（关联查询） */
     private String userPhone;
 
+    @Excel(name = "剂次")
+    private Integer doseNumber;
+
+    /** 下一剂预约日期 */
+    @Excel(name = "下一剂日期", width = 30, dateFormat = "yyyy-MM-dd")
+    private Date nextDoseDate;
+
+    /** 该剂次是否已完成 */
+    @Excel(name = "是否完成", readConverterExp = "0=未完成,1=已完成")
+    private Integer isCompleted;
 
 
     /** 生产厂家（关联查询） */
@@ -170,9 +178,6 @@ public class VaccineAppointment extends BaseEntity
         return manufacturer;
     }
 
-
-
-
     public String getSuitableAge() {
         return suitableAge;
     }
@@ -180,6 +185,12 @@ public class VaccineAppointment extends BaseEntity
     public void setSuitableAge(String suitableAge) {
         this.suitableAge = suitableAge;
     }
+    public Integer getDoseNumber() { return doseNumber; }
+    public void setDoseNumber(Integer doseNumber) { this.doseNumber = doseNumber; }
+    public Date getNextDoseDate() { return nextDoseDate; }
+    public void setNextDoseDate(Date nextDoseDate) { this.nextDoseDate = nextDoseDate; }
+    public Integer getIsCompleted() { return isCompleted; }
+    public void setIsCompleted(Integer isCompleted) { this.isCompleted = isCompleted; }
 
     @Override
     public String toString() {
@@ -200,6 +211,9 @@ public class VaccineAppointment extends BaseEntity
                 .append("createBy", getCreateBy())
                 .append("createTime", getCreateTime())
                 .append("updateBy", getUpdateBy())
+                .append("doseNumber", getDoseNumber())
+                .append("nextDoseDate", getNextDoseDate())
+                .append("isCompleted", getIsCompleted())
                 .append("updateTime", getUpdateTime())
                 .toString();
     }

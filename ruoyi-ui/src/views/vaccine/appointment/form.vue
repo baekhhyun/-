@@ -16,7 +16,7 @@
 
       <!-- 疫苗信息展示 -->
       <div v-if="vaccine" class="vaccine-info">
-        <el-descriptions title="所选疫苗信息" :column="2" border>
+        <el-descriptions title="所选疫苗信息" :column="2">
           <el-descriptions-item label="疫苗名称">{{
             vaccine.name
           }}</el-descriptions-item>
@@ -36,7 +36,50 @@
               >
             </span>
           </el-descriptions-item>
+          <!--  多剂次疫苗信息展示（新增） -->
+          <el-descriptions-item
+            v-if="vaccine.isMultiDose === 1"
+            label="接种计划"
+            :span="2"
+          >
+            <div class="dose-plan">
+              <el-tag type="info" size="small"
+                >共 {{ vaccine.totalDoses }} 剂次</el-tag
+              >
+              <el-tag type="warning" size="small" style="margin-left: 8px"
+                >间隔 {{ vaccine.intervalDays }} 天</el-tag
+              >
+              <span v-if="vaccine.doseSchedule" style="margin-left: 8px"
+                >（{{ vaccine.doseSchedule }}）</span
+              >
+            </div>
+          </el-descriptions-item>
         </el-descriptions>
+
+        <!--  用户接种进度提示（新增） -->
+        <el-alert
+          v-if="vaccine.isMultiDose === 1 && userProgress"
+          :title="getProgressTitle()"
+          :type="getProgressType()"
+          :closable="false"
+          show-icon
+          style="margin-top: 15px"
+        >
+          <template slot="default">
+            <div class="progress-detail">
+              <span
+                >已完成：第 {{ userProgress.completedDoses }} /
+                {{ vaccine.totalDoses }} 剂</span
+              >
+              <span v-if="userProgress.nextDose" style="margin-left: 20px">
+                下一剂：第 {{ userProgress.nextDose }} 剂
+                <span v-if="userProgress.earliestDate">
+                  （最早可约 {{ userProgress.earliestDate }}）
+                </span>
+              </span>
+            </div>
+          </template>
+        </el-alert>
       </div>
 
       <!-- 预约表单 -->
@@ -74,6 +117,7 @@
             value-format="yyyy-MM-dd"
             :picker-options="datePickerOptions"
             style="width: 100%"
+            @change="handleDateChange"
           >
           </el-date-picker>
           <div class="tip-text">请选择未来7天内的日期</div>
@@ -147,7 +191,7 @@
             type="primary"
             @click="submitAppointment"
             :loading="submitting"
-            :disabled="!userName"
+            :disabled="!userName || !canSubmit"
           >
             <i class="el-icon-check"></i> 提交预约
           </el-button>
@@ -172,16 +216,19 @@
         <li>3. 如有发热、咳嗽等症状，请暂缓接种并及时取消预约</li>
         <li>4. 如需取消预约，请在"我的预约"页面操作</li>
         <li>5. 咨询电话：0769-88888888</li>
+        <li v-if="vaccine && vaccine.isMultiDose === 1">
+          6. 多剂次疫苗提醒：请按照接种计划完成全部剂次接种
+        </li>
       </ul>
     </el-card>
   </div>
 </template>
 
 <script>
-import { getVaccine } from "@/api/vaccine/vaccine"; // 使用疫苗模块的API
+import { getVaccine, getMyVaccineProgress } from "@/api/vaccine/vaccine";
 import {
   addAppointment,
-  getTimeSlotRemaining,
+  getTimeSlotRemaining, //  新增API
 } from "@/api/vaccine/appointment";
 import { getUserProfile } from "@/api/system/user";
 
@@ -225,13 +272,6 @@ export default {
           return;
         }
 
-        // 检查是否为周末（0=周日,6=周六）
-        // const day = selectedDate.getDay();
-        // if (day === 0 || day === 6) {
-        //   callback(new Error("周末不可预约，请选择工作日"));
-        //   return;
-        // }
-
         callback();
       }
     };
@@ -240,10 +280,11 @@ export default {
       // 疫苗信息
       vaccine: null,
       vaccineId: null,
-
       // 用户信息
       userName: "",
       userInfo: {},
+      //  用户接种进度（新增）
+      userProgress: null,
 
       // 表单数据
       formData: {
@@ -295,14 +336,12 @@ export default {
       slotLoading: false,
 
       // 日期选择限制
-
       datePickerOptions: {
         disabledDate(time) {
           const now = new Date();
           now.setHours(0, 0, 0, 0);
-          // 计算7天后的日期（包含今天）
           const maxDate = new Date(now);
-          maxDate.setDate(now.getDate() + 6); // 今天是第1天，+6天是第7天
+          maxDate.setDate(now.getDate() + 6);
           return (
             time.getTime() < now.getTime() || time.getTime() > maxDate.getTime()
           );
@@ -313,21 +352,34 @@ export default {
       submitting: false,
     };
   },
+  computed: {
+    // 是否有可用时间段
+    hasAvailableSlot() {
+      return this.timeSlots.some((slot) => slot.available);
+    },
+
+    //  是否可以提交（多剂次疫苗额外校验，新增）
+    canSubmit() {
+      if (!this.vaccine || this.vaccine.isMultiDose !== 1) {
+        return true;
+      }
+      if (!this.userProgress) {
+        return true;
+      }
+      // 已完成全部剂次不可再约
+      if (this.userProgress.completedDoses >= this.vaccine.totalDoses) {
+        return false;
+      }
+      return true;
+    },
+  },
   beforeRouteEnter(to, from, next) {
-    // console.log("beforeRouteEnter", to.query);
     next((vm) => {
       vm.initFromRoute(to);
     });
   },
 
   beforeRouteUpdate(to, from, next) {
-    // console.log(
-    //   "beforeRouteUpdate",
-    //   from.query.vaccineId,
-    //   "->",
-    //   to.query.vaccineId
-    // );
-
     const newVaccineId = to.query.vaccineId;
     const oldVaccineId = from.query.vaccineId;
 
@@ -339,29 +391,10 @@ export default {
   },
 
   created() {
-    // this.initPage();
     this.initFromRoute(this.$route);
     this.$nextTick(() => {
       this.initPage();
     });
-  },
-  computed: {
-    // 是否有可用时间段
-    hasAvailableSlot() {
-      return this.timeSlots.some((slot) => slot.available);
-    },
-
-    // 格式化显示
-    formattedTimeSlots() {
-      return this.timeSlots.map((slot) => ({
-        ...slot,
-        displayLabel: `${slot.label} ${
-          slot.available
-            ? `(剩余${slot.remaining}/${slot.maxCapacity})`
-            : "(已满)"
-        }`,
-      }));
-    },
   },
   watch: {
     // 监听预约日期变化，动态获取名额
@@ -370,7 +403,6 @@ export default {
         if (newVal) {
           this.getTimeSlotRemaining(newVal);
         } else {
-          // 重置所有时间段剩余名额
           this.resetTimeSlots();
         }
       },
@@ -379,100 +411,108 @@ export default {
   },
 
   methods: {
+    //  获取进度提示标题
+    getProgressTitle() {
+      if (!this.userProgress) return "";
+      const completed = this.userProgress.completedDoses;
+      const total = this.vaccine.totalDoses;
+      if (completed === 0) {
+        return `📢 您还未接种过该疫苗，请预约第1剂`;
+      }
+      if (completed === total) {
+        return `✅ 您已完成全部 ${total} 剂次接种，无需再次预约`;
+      }
+      return `📢 您已完成 ${completed}/${total} 剂次，请继续预约第 ${
+        completed + 1
+      } 剂`;
+    },
+
+    //  获取进度提示类型（新增）
+    getProgressType() {
+      if (!this.userProgress) return "info";
+      const completed = this.userProgress.completedDoses;
+      const total = this.vaccine.totalDoses;
+      if (completed === 0) return "warning";
+      if (completed === total) return "success";
+      return "info";
+    },
+
     initFromRoute(route) {
       const vaccineId = route.query.vaccineId;
-      // console.log("从路由初始化, vaccineId:", vaccineId);
-
       if (!vaccineId) {
         this.$message.error("未选择疫苗");
         this.$router.push("/vaccine/appointment/user");
         return;
       }
 
-      // 转换为数字
       const numericId = parseInt(vaccineId);
-
-      // 如果ID不同才重新加载
       if (this.vaccineId !== numericId) {
         this.vaccineId = numericId;
         this.loadVaccineInfo();
       }
     },
 
-    // 处理疫苗切换
     handleVaccineChange(newVaccineId) {
-      // console.log("处理疫苗切换:", newVaccineId);
-
       if (!newVaccineId) return;
-
-      // 转换为数字
       const numericId = parseInt(newVaccineId);
+      if (this.vaccineId === numericId) return;
 
-      // 如果相同就不处理
-      if (this.vaccineId === numericId) {
-        // console.log("疫苗ID相同，不处理");
-        return;
-      }
-
-      // 更新ID
       this.vaccineId = numericId;
-
-      // 重置所有数据
       this.resetForNewVaccine();
-
-      // 加载新疫苗信息
       this.loadVaccineInfo();
     },
 
-    // 为新疫苗重置数据
     resetForNewVaccine() {
-      // console.log("为新疫苗重置数据");
-
-      // 清空疫苗信息
       this.vaccine = null;
-      this.vaccineName = "";
-
-      // 重置表单
+      this.userProgress = null;
       this.formData = {
         vaccineId: this.vaccineId,
         appointmentDate: "",
         timeSlot: "1",
-        phone: this.formData.phone, // 保留电话
+        phone: this.formData.phone,
         remark: "",
       };
-
-      // 如果有用户电话，保留
       if (this.userInfo?.phonenumber) {
         this.formData.phone = this.userInfo.phonenumber;
       }
     },
 
-    // 加载疫苗信息
-    loadVaccineInfo() {
-      if (!this.vaccineId) {
-        console.error("疫苗ID为空");
+    //  加载用户接种进度（新增）
+    loadUserProgress() {
+      if (!this.vaccineId || this.vaccine?.isMultiDose !== 1) {
+        this.userProgress = null;
         return;
       }
 
-      this.loading = true;
-      // console.log("加载疫苗信息, ID:", this.vaccineId);
-
-      getVaccineInfo(this.vaccineId)
+      getMyVaccineProgress(this.vaccineId)
         .then((response) => {
-          // console.log("疫苗信息响应:", response);
-
           if (response.code === 200 && response.data) {
+            this.userProgress = response.data;
+          }
+        })
+        .catch((error) => {
+          console.error("获取接种进度失败:", error);
+          this.userProgress = null;
+        });
+    },
+
+    loadVaccineInfo() {
+      if (!this.vaccineId) return;
+
+      this.loading = true;
+      getVaccine(this.vaccineId)
+        .then((response) => {
+          if (response.code === 200) {
             this.vaccine = response.data;
-            this.vaccineName = response.data.name;
             this.formData.vaccineId = this.vaccineId;
+            document.title = `预约${this.vaccine.name} - 疫苗接种预约平台`;
 
-            // 更新页面标题
-            document.title = `预约${this.vaccineName} - 疫苗接种预约平台`;
-
-            // 检查库存
             if (response.data.stock <= 0) {
               this.$message.warning("该疫苗库存不足");
             }
+
+            //  加载用户接种进度
+            this.loadUserProgress();
           } else {
             this.$message.error(response.msg || "获取疫苗信息失败");
           }
@@ -485,11 +525,7 @@ export default {
           this.loading = false;
         });
     },
-
-    // 返回疫苗列表
-    goBack() {
-      this.$router.push("/vaccine/appointment/user");
-    },
+    handleDateChange() {},
     getTimeSlotRemaining(date) {
       if (!date) return;
 
@@ -499,7 +535,6 @@ export default {
           if (response.code === 200 && response.data) {
             const slotData = response.data;
 
-            // 更新时间段数据
             this.timeSlots = this.timeSlots.map((slot) => {
               const found = slotData.find((s) => s.value === slot.value);
               if (found) {
@@ -514,7 +549,6 @@ export default {
               return slot;
             });
 
-            // 如果当前选中的时间段不可用，清空选择
             const currentSlot = this.formData.timeSlot;
             if (currentSlot) {
               const selectedSlot = this.timeSlots.find(
@@ -529,7 +563,6 @@ export default {
         })
         .catch((error) => {
           console.error("获取时间段剩余名额失败:", error);
-          // 出错时使用默认值
           this.resetTimeSlots();
         })
         .finally(() => {
@@ -537,7 +570,6 @@ export default {
         });
     },
 
-    // 重置时间段数据
     resetTimeSlots() {
       this.timeSlots = [
         {
@@ -567,7 +599,6 @@ export default {
       ];
     },
 
-    // 检查时间段是否可选
     checkTimeSlotAvailability() {
       if (!this.formData.appointmentDate) {
         this.$message.warning("请先选择预约日期");
@@ -584,19 +615,8 @@ export default {
       return true;
     },
 
-    // 提交预约前检查
-    submitAppointment() {
-      // 先检查时间段是否可用
-      if (!this.checkTimeSlotAvailability()) {
-        return;
-      }
-    },
-    // 初始化页面
     initPage() {
-      // 先获取用户信息
       this.loadUserInfo();
-
-      // 获取URL参数中的疫苗ID
       this.vaccineId =
         this.$route.query.vaccineId || this.$route.params.vaccineId;
 
@@ -606,21 +626,17 @@ export default {
         return;
       }
 
-      // 加载疫苗信息
       this.loadVaccineInfo();
     },
 
-    // 加载用户信息
     loadUserInfo() {
       getUserProfile()
         .then((response) => {
           if (response.code === 200 && response.data) {
             this.userInfo = response.data;
-            // 优先显示昵称，没有则显示用户名
             this.userName =
               response.data.nickName || response.data.userName || "用户";
 
-            // 如果有用户手机号，可以自动填充
             if (response.data.phonenumber && !this.formData.phone) {
               this.formData.phone = response.data.phonenumber;
             }
@@ -635,44 +651,11 @@ export default {
         });
     },
 
-    // 刷新用户信息
     refreshUserInfo() {
       this.userName = "获取中...";
       this.loadUserInfo();
     },
 
-    // 加载疫苗信息
-    loadVaccineInfo() {
-      this.loading = true;
-      getVaccine(this.vaccineId)
-        .then((response) => {
-          if (response.code === 200) {
-            this.vaccine = response.data;
-            this.formData.vaccineId = this.vaccineId;
-            this.formData.appointmentDate = "";
-            this.formData.timeSlot = "1";
-
-            // 重置时间段剩余名额
-            this.resetTimeSlots();
-            // 如果库存为0，禁止预约
-            if (this.vaccine.stock !== undefined && this.vaccine.stock <= 0) {
-              this.$message.error("该疫苗库存不足，暂时无法预约");
-              this.goBack();
-            }
-          } else {
-            this.$message.error(response.msg || "获取疫苗信息失败");
-          }
-        })
-        .catch((error) => {
-          console.error("加载疫苗信息失败:", error);
-          this.$message.error("加载疫苗信息失败");
-        })
-        .finally(() => {
-          this.loading = false;
-        });
-    },
-
-    // 格式化适用年龄
     formatAge(ageCode) {
       const ageMap = {
         1: "婴儿",
@@ -684,7 +667,6 @@ export default {
       return ageMap[ageCode] || "-";
     },
 
-    // 获取年龄标签类型
     getAgeTagType(ageCode) {
       const typeMap = {
         1: "success",
@@ -696,20 +678,41 @@ export default {
       return typeMap[ageCode] || "info";
     },
 
-    // 提交预约
     submitAppointment() {
-      // 先检查用户信息是否加载完成
+      // 检查用户信息
       if (!this.userName || this.userName === "获取中...") {
         this.$message.warning("正在获取用户信息，请稍后重试");
         this.refreshUserInfo();
         return;
       }
 
+      //  多剂次疫苗额外校验
+      if (this.vaccine && this.vaccine.isMultiDose === 1 && this.userProgress) {
+        const totalDoses = this.vaccine.totalDoses;
+        if (this.userProgress.completedDoses >= totalDoses) {
+          this.$message.error(
+            `您已完成该疫苗的全部${totalDoses}剂次接种，无需再次预约`
+          );
+          return;
+        }
+
+        // 检查间隔时间（前端提醒，后端会再次校验）
+        if (this.userProgress.earliestDate) {
+          const selectedDate = this.formData.appointmentDate;
+          const earliestDate = this.userProgress.earliestDate;
+          if (selectedDate && selectedDate < earliestDate) {
+            this.$message.error(
+              `距离上一剂接种时间不足${this.vaccine.intervalDays}天，请选择${earliestDate}之后的日期`
+            );
+            return;
+          }
+        }
+      }
+
       this.$refs.appointmentForm.validate((valid) => {
         if (valid) {
           this.submitting = true;
 
-          // 构建预约数据
           const appointmentData = {
             vaccineId: this.formData.vaccineId,
             appointmentDate: this.formData.appointmentDate,
@@ -718,7 +721,6 @@ export default {
             remark: this.formData.remark,
           };
 
-          // 调用API提交预约
           addAppointment(appointmentData)
             .then((response) => {
               this.submitting = false;
@@ -728,12 +730,13 @@ export default {
                   this.$router.push("/vaccine/appointment/my");
                 }, 1500);
               } else {
-                // 根据不同的错误信息给出更友好的提示
                 let errorMsg = response.msg || "预约失败";
                 if (errorMsg.includes("当天已有有效预约")) {
                   errorMsg = "您当天已有其他预约，如需重新预约请先取消原有预约";
                 } else if (errorMsg.includes("已预约过此疫苗")) {
                   errorMsg = "您已预约过此疫苗，如需重新预约请先取消原有预约";
+                } else if (errorMsg.includes("间隔")) {
+                  errorMsg = errorMsg;
                 }
                 this.$message.error(errorMsg);
               }
@@ -750,25 +753,21 @@ export default {
       });
     },
 
-    // 返回疫苗列表
     goBack() {
       this.$router.push("/vaccine/appointment/user");
     },
 
-    // 重置表单
     resetForm() {
       this.formData = {
-        vaccineId: this.vaccineId, // 保留疫苗ID
+        vaccineId: this.vaccineId,
         appointmentDate: "",
-        timeSlot: "1", // 重置为默认值
+        timeSlot: "1",
         phone: "",
         remark: "",
       };
 
-      // 重置时间段数据
       this.resetTimeSlots();
 
-      // 如果有用户手机号，重新填充
       if (this.userInfo.phonenumber) {
         this.formData.phone = this.userInfo.phonenumber;
       }
@@ -780,24 +779,7 @@ export default {
 </script>
 
 <style scoped>
-.time-slots-info {
-  margin-top: 15px;
-}
-
-.el-radio {
-  margin-bottom: 10px;
-  display: block !important;
-  line-height: 2 !important;
-}
-
-.el-radio.is-disabled {
-  opacity: 0.6;
-}
-
-.el-radio.is-disabled span {
-  color: #f56c6c !important;
-}
-/* 原有的样式保持不变 */
+/* 原有样式保持不变 */
 .app-container {
   padding: 20px;
 }
@@ -878,7 +860,37 @@ export default {
   font-weight: bold;
 }
 
-/* 响应式调整 */
+.time-slots-info {
+  margin-top: 15px;
+}
+
+.el-radio {
+  margin-bottom: 10px;
+  display: block !important;
+  line-height: 2 !important;
+}
+
+.el-radio.is-disabled {
+  opacity: 0.6;
+}
+
+.el-radio.is-disabled span {
+  color: #f56c6c !important;
+}
+
+/*  新增样式 */
+.dose-plan {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+}
+
+.progress-detail {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 16px;
+}
+
 @media screen and (max-width: 768px) {
   .time-slots {
     flex-direction: column;

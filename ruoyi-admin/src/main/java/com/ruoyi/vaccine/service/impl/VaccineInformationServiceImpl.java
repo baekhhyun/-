@@ -15,8 +15,6 @@ import org.springframework.transaction.annotation.Transactional;
 
 /**
  * 疫苗信息Service业务层处理
- * 
- * @author jzx
  * @date 2026-02-08
  */
 @Service

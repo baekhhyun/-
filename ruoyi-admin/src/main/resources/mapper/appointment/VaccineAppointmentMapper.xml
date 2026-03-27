@@ -22,14 +22,20 @@
         <result property="suitableAge"    column="suitableAge"    />
         <result property="userName"    column="userName"    />
         <result property="userPhone"    column="userPhone"    />
-        <result property="manufacturer" column="manufacturer"/>  <!-- ✅ 正确 -->
+        <result property="manufacturer" column="manufacturer"/>
+        <!-- 多剂次疫苗字段 -->
+        <result property="doseNumber" column="dose_number"/>
+        <result property="nextDoseDate" column="next_dose_date"/>
+        <result property="isCompleted" column="is_completed"/>
     </resultMap>
 
     <sql id="selectVaccineAppointmentVo">
         select id, user_id, vaccine_id, appointment_date, time_slot, status, phone, remark, create_by, create_time, update_by, update_time from vaccine_appointment
     </sql>
 
-    <!-- 基本查询（不改） -->
+    <!-- ==================== 原有查询方法（已添加多剂次字段） ==================== -->
+
+    <!-- 基本查询 -->
     <select id="selectVaccineAppointmentList" parameterType="VaccineAppointment" resultMap="VaccineAppointmentResult">
         <include refid="selectVaccineAppointmentVo"/>
         <where>
@@ -43,7 +49,7 @@
         order by create_time desc
     </select>
 
-    <!-- 管理员查询：关联用户和疫苗信息（修改这里！） -->
+    <!-- 管理员查询：关联用户和疫苗信息（含多剂次字段） -->
     <select id="selectVaccineAppointmentListWithInfo" parameterType="VaccineAppointment" resultMap="VaccineAppointmentResult">
         SELECT
         a.id as id,
@@ -52,7 +58,7 @@
         u.phonenumber as userPhone,
         a.vaccine_id as vaccine_id,
         v.name as vaccineName,
-        v.manufacturer as manufacturer,  <!-- ⭐️ 关键：这里要起别名 manufacturer -->
+        v.manufacturer as manufacturer,
         v.suitable_age as suitableAge,
         a.appointment_date as appointment_date,
         a.time_slot as time_slot,
@@ -60,10 +66,13 @@
         a.phone as phone,
         a.remark as remark,
         a.create_time as create_time,
-        a.update_time as update_time
+        a.update_time as update_time,
+        a.dose_number as dose_number,
+        a.next_dose_date as next_dose_date,
+        a.is_completed as is_completed
         FROM vaccine_appointment a
         LEFT JOIN sys_user u ON a.user_id = u.user_id
-        LEFT JOIN vaccine_information v ON a.vaccine_id = v.id  <!-- ⭐️ 关键修改：v.id 不是 v.vaccine_id -->
+        LEFT JOIN vaccine_information v ON a.vaccine_id = v.id
         <where>
             <if test="appointmentDate != null">
                 AND a.appointment_date = #{appointmentDate}
@@ -92,7 +101,6 @@
             <if test="manufacturer != null and manufacturer != ''">
                 AND v.manufacturer like concat('%', #{manufacturer}, '%')
             </if>
-
             <!-- 手机号模糊搜索 -->
             <if test="phone != null and phone != ''">
                 AND (a.phone like concat('%', #{phone}, '%')
@@ -102,21 +110,24 @@
         ORDER BY a.create_time DESC
     </select>
 
-    <!-- 我的预约列表查询（也需要修改） -->
+    <!-- 我的预约列表查询（含多剂次字段） -->
     <select id="selectMyAppointmentList" parameterType="VaccineAppointment" resultMap="VaccineAppointmentResult">
         SELECT
         a.id as id,
         a.vaccine_id as vaccine_id,
         v.name as vaccineName,
         a.appointment_date as appointment_date,
-        v.manufacturer as manufacturer,  <!-- ⭐️ 如果需要，也加上 -->
+        v.manufacturer as manufacturer,
         a.time_slot as time_slot,
         a.status as status,
         a.phone as phone,
         a.remark as remark,
-        a.create_time as create_time
+        a.create_time as create_time,
+        a.dose_number as dose_number,
+        a.next_dose_date as next_dose_date,
+        a.is_completed as is_completed
         FROM vaccine_appointment a
-        LEFT JOIN vaccine_information v ON a.vaccine_id = v.id  <!-- ⭐️ 同样修改这里 -->
+        LEFT JOIN vaccine_information v ON a.vaccine_id = v.id
         WHERE a.user_id = #{userId}
         <if test="status != null and status != ''">
             AND a.status = #{status}
@@ -127,7 +138,7 @@
         ORDER BY a.create_time DESC
     </select>
 
-    <!-- 根据ID查询（不改） -->
+    <!-- 根据ID查询（含多剂次字段） -->
     <select id="selectVaccineAppointmentById" parameterType="Long" resultMap="VaccineAppointmentResult">
         SELECT
         a.id,
@@ -137,26 +148,32 @@
         a.vaccine_id,
         v.name as vaccineName,
         v.suitable_age as suitableAge,
-        v.manufacturer as manufacturer,  <!-- ⭐️ 如果需要，也加上 -->
+        v.manufacturer as manufacturer,
         a.appointment_date,
         a.time_slot,
         a.status,
         a.phone,
         a.remark,
         a.create_time,
-        a.update_time
+        a.update_time,
+        a.dose_number as dose_number,
+        a.next_dose_date as next_dose_date,
+        a.is_completed as is_completed
         FROM vaccine_appointment a
         LEFT JOIN sys_user u ON a.user_id = u.user_id
         LEFT JOIN vaccine_information v ON a.vaccine_id = v.id
         WHERE a.id = #{id}
     </select>
+
+    <!-- 待处理预约数量统计 -->
     <select id="selectPendingCount" resultType="int">
         select count(*)
         from vaccine_appointment
         where status = '0'
     </select>
 
-    <!-- 插入（不改） -->
+    <!-- ==================== 插入方法（已添加多剂次字段） ==================== -->
+
     <insert id="insertVaccineAppointment" parameterType="VaccineAppointment" useGeneratedKeys="true" keyProperty="id">
         insert into vaccine_appointment
         <trim prefix="(" suffix=")" suffixOverrides=",">
@@ -171,6 +188,10 @@
             <if test="createTime != null">create_time,</if>
             <if test="updateBy != null">update_by,</if>
             <if test="updateTime != null">update_time,</if>
+            <!-- 多剂次字段 -->
+            <if test="doseNumber != null">dose_number,</if>
+            <if test="nextDoseDate != null">next_dose_date,</if>
+            <if test="isCompleted != null">is_completed,</if>
         </trim>
         <trim prefix="values (" suffix=")" suffixOverrides=",">
             <if test="userId != null">#{userId},</if>
@@ -184,10 +205,15 @@
             <if test="createTime != null">#{createTime},</if>
             <if test="updateBy != null">#{updateBy},</if>
             <if test="updateTime != null">#{updateTime},</if>
+            <!-- 多剂次字段值 -->
+            <if test="doseNumber != null">#{doseNumber},</if>
+            <if test="nextDoseDate != null">#{nextDoseDate},</if>
+            <if test="isCompleted != null">#{isCompleted},</if>
         </trim>
     </insert>
 
-    <!-- 更新（不改） -->
+    <!-- ==================== 更新方法（已添加多剂次字段） ==================== -->
+
     <update id="updateVaccineAppointment" parameterType="VaccineAppointment">
         update vaccine_appointment
         <trim prefix="SET" suffixOverrides=",">
@@ -200,21 +226,250 @@
             <if test="remark != null">remark = #{remark},</if>
             <if test="updateBy != null">update_by = #{updateBy},</if>
             <if test="updateTime != null">update_time = #{updateTime},</if>
+            <!-- 多剂次字段 -->
+            <if test="doseNumber != null">dose_number = #{doseNumber},</if>
+            <if test="nextDoseDate != null">next_dose_date = #{nextDoseDate},</if>
+            <if test="isCompleted != null">is_completed = #{isCompleted},</if>
         </trim>
         where id = #{id}
     </update>
 
-    <!-- 删除（不改） -->
+    <!-- ==================== 删除方法（不变） ==================== -->
+
     <delete id="deleteVaccineAppointmentById" parameterType="Long">
         delete from vaccine_appointment where id = #{id}
     </delete>
 
-    <!-- 批量删除（不改） -->
     <delete id="deleteVaccineAppointmentByIds" parameterType="String">
         delete from vaccine_appointment where id in
         <foreach item="id" collection="array" open="(" separator="," close=")">
             #{id}
         </foreach>
     </delete>
+
+    <!-- ==================== 多剂次疫苗新增方法 ==================== -->
+    <select id="selectCountByVaccineAndDate" resultType="java.lang.Integer">
+        SELECT COUNT(*)
+        FROM vaccine_appointment
+        WHERE vaccine_id = #{vaccineId}
+        AND DATE(appointment_date) = DATE(#{appointmentDate})
+        AND status != '3'
+    </select>
+    <!-- 根据用户ID和疫苗ID查询所有未取消的预约记录（按剂次升序） -->
+    <select id="selectUserVaccineAppointments" resultMap="VaccineAppointmentResult">
+        SELECT
+        a.id,
+        a.user_id,
+        a.vaccine_id,
+        a.appointment_date,
+        a.time_slot,
+        a.status,
+        a.phone,
+        a.remark,
+        a.dose_number,
+        a.next_dose_date,
+        a.is_completed,
+        a.create_time
+        FROM vaccine_appointment a
+        WHERE a.user_id = #{userId}
+        AND a.vaccine_id = #{vaccineId}
+        AND a.status != '3'
+        ORDER BY a.dose_number ASC
+    </select>
+
+    <!-- 查询用户所有待接种剂次（包括未预约的下一针） -->
+    <select id="selectUserPendingDoses" resultMap="VaccineAppointmentResult">
+        -- 1. 查询已存在但未完成的预约（已预约但还没接种）
+        SELECT
+        a.id,
+        a.user_id,
+        a.vaccine_id,
+        v.name as vaccineName,
+        a.appointment_date,
+        a.time_slot,
+        a.status,
+        a.dose_number,
+        a.next_dose_date,
+        a.is_completed,
+        a.create_time,
+        v.total_doses as totalDoses,
+        v.is_multi_dose as isMultiDose
+        FROM vaccine_appointment a
+        LEFT JOIN vaccine_information v ON a.vaccine_id = v.id
+        WHERE a.user_id = #{userId}
+        AND a.is_completed = 0
+        AND a.status IN ('0', '1')
+
+        UNION ALL
+
+        -- 2. 查询需要接种但还没预约的下一剂（已完成上一剂，但还没预约下一剂）
+        SELECT
+        NULL as id,
+        #{userId} as user_id,
+        v.id as vaccine_id,
+        v.name as vaccineName,
+        NULL as appointment_date,
+        NULL as time_slot,
+        'pending' as status,
+        (COALESCE(MAX(a.dose_number), 0) + 1) as dose_number,
+        -- 🔥 下一针日期 = 最后一剂完成日期 + 间隔天数
+        CASE
+        WHEN MAX(a.appointment_date) IS NOT NULL
+        THEN DATE_ADD(MAX(a.appointment_date), INTERVAL v.interval_days DAY)
+        ELSE NULL
+        END as next_dose_date,
+        0 as is_completed,
+        NOW() as create_time,
+        v.total_doses as totalDoses,
+        v.is_multi_dose as isMultiDose
+        FROM vaccine_information v
+        INNER JOIN vaccine_appointment a ON v.id = a.vaccine_id
+        AND a.user_id = #{userId}
+        AND a.is_completed = 1
+        AND a.status IN ('1', '2')
+        WHERE v.is_multi_dose = 1
+        AND v.status = '0'
+        GROUP BY v.id, v.name, v.interval_days, v.total_doses, v.is_multi_dose
+        HAVING COALESCE(MAX(a.dose_number), 0) &lt; v.total_doses
+    </select>
+
+    <!-- 查询今日待接种提醒（后台管理员用） -->
+    <select id="selectTodayReminders" resultType="java.util.Map">
+        SELECT
+        a.id,
+        a.user_id,
+        u.user_name as userName,
+        u.phonenumber as userPhone,
+        a.vaccine_id,
+        v.name as vaccineName,
+        a.dose_number,
+        a.appointment_date,
+        a.time_slot,
+        a.status
+        FROM vaccine_appointment a
+        LEFT JOIN sys_user u ON a.user_id = u.user_id
+        LEFT JOIN vaccine_information v ON a.vaccine_id = v.id
+        WHERE a.status = '1'
+        AND a.appointment_date = CURDATE()
+        AND (a.is_completed = 0 OR a.is_completed IS NULL)
+        ORDER BY a.time_slot ASC
+    </select>
+
+    <!-- 统计疫苗消耗情况（包含首剂和加强剂数据） -->
+    <select id="selectVaccineConsumptionStats" resultType="java.util.Map">
+        SELECT
+        v.id as vaccineId,
+        v.name as vaccineName,
+        v.stock as totalStock,
+        v.is_multi_dose as isMultiDose,
+        v.total_doses as totalDoses,
+        -- 总预约数
+        COUNT(a.id) as totalAppointments,
+        -- 已完成首剂的人数（dose_number = 1 且 is_completed = 1）
+        SUM(CASE WHEN a.dose_number = 1 AND a.is_completed = 1 THEN 1 ELSE 0 END) as firstDoseCompleted,
+        -- 已完成全部剂次的人数（dose_number = total_doses AND is_completed = 1）
+        SUM(CASE WHEN a.dose_number = v.total_doses AND a.is_completed = 1 THEN 1 ELSE 0 END) as allDosesCompleted,
+        -- 使用率
+        ROUND(COUNT(a.id) * 100.0 / v.stock, 1) as usageRate
+        FROM vaccine_information v
+        LEFT JOIN vaccine_appointment a ON v.id = a.vaccine_id AND a.status IN ('1', '2')
+        WHERE v.status = '0'
+        GROUP BY v.id, v.name, v.stock, v.is_multi_dose, v.total_doses
+        ORDER BY usageRate DESC
+    </select>
+
+    <!-- 统计接种覆盖率（按用户） -->
+    <select id="selectVaccinationCoverage" resultType="java.util.Map">
+        SELECT
+        v.id as vaccineId,
+        v.name as vaccineName,
+        COUNT(DISTINCT a.user_id) as vaccinatedCount,
+        (SELECT COUNT(*) FROM sys_user WHERE del_flag = '0') as totalUsers,
+        ROUND(COUNT(DISTINCT a.user_id) * 100.0 / (SELECT COUNT(*) FROM sys_user WHERE del_flag = '0'), 1) as coverageRate
+        FROM vaccine_information v
+        LEFT JOIN vaccine_appointment a ON v.id = a.vaccine_id AND a.status IN ('2')
+        GROUP BY v.id, v.name
+        ORDER BY coverageRate DESC
+    </select>
+
+    <!-- 统计各剂次完成情况（用于多剂次进度展示） -->
+    <select id="selectDoseCompletionStats" parameterType="Long" resultType="java.util.Map">
+        SELECT
+        dose_number,
+        COUNT(*) as totalCount,
+        SUM(CASE WHEN is_completed = 1 THEN 1 ELSE 0 END) as completedCount,
+        ROUND(SUM(CASE WHEN is_completed = 1 THEN 1 ELSE 0 END) * 100.0 / COUNT(*), 1) as completionRate
+        FROM vaccine_appointment
+        WHERE vaccine_id = #{vaccineId}
+        AND status != '3'
+        GROUP BY dose_number
+        ORDER BY dose_number ASC
+    </select>
+
+    <!-- 检查用户是否已完成全部剂次 -->
+    <select id="selectUserCompletedDoses" resultType="java.lang.Integer">
+        SELECT COUNT(*)
+        FROM vaccine_appointment
+        WHERE user_id = #{userId}
+        AND vaccine_id = #{vaccineId}
+        AND is_completed = 1
+        AND status IN ('1', '2')
+    </select>
+
+    <!-- 获取用户某疫苗的最新预约记录 -->
+    <select id="selectUserLatestAppointment" resultMap="VaccineAppointmentResult">
+        SELECT
+        a.id,
+        a.user_id,
+        a.vaccine_id,
+        a.appointment_date,
+        a.time_slot,
+        a.status,
+        a.dose_number,
+        a.next_dose_date,
+        a.is_completed,
+        a.create_time
+        FROM vaccine_appointment a
+        WHERE a.user_id = #{userId}
+        AND a.vaccine_id = #{vaccineId}
+        AND a.status != '3'
+        ORDER BY a.dose_number DESC
+        LIMIT 1
+    </select>
+
+    <!-- 按日期统计预约数量（用于预约趋势图，支持多剂次） -->
+    <select id="selectAppointmentTrendByDate" resultType="java.util.Map">
+        SELECT
+        DATE_FORMAT(appointment_date, '%m-%d') as date,
+        COUNT(*) as totalCount,
+        SUM(CASE WHEN dose_number = 1 THEN 1 ELSE 0 END) as firstDoseCount,
+        SUM(CASE WHEN dose_number > 1 THEN 1 ELSE 0 END) as boosterDoseCount
+        FROM vaccine_appointment
+        WHERE appointment_date BETWEEN STR_TO_DATE(#{beginDate}, '%Y-%m-%d')
+        AND STR_TO_DATE(#{endDate}, '%Y-%m-%d')
+        AND status IN ('1', '2')
+        GROUP BY DATE_FORMAT(appointment_date, '%m-%d')
+        ORDER BY date ASC
+    </select>
+
+    <!-- 统计疫苗总预约数（用于库存计算） -->
+    <select id="selectTotalBookedByVaccine" resultType="java.lang.Integer">
+        SELECT COUNT(*)
+        FROM vaccine_appointment
+        WHERE vaccine_id = #{vaccineId}
+        AND status IN ('0', '1', '2')
+    </select>
+    <!-- 查询用户已完成的预约记录（排除指定ID） -->
+    <select id="selectUserCompletedAppointments" resultMap="VaccineAppointmentResult">
+        SELECT *
+        FROM vaccine_appointment
+        WHERE user_id = #{userId}
+        AND vaccine_id = #{vaccineId}
+        AND is_completed = 1
+        AND status = '2'
+        <if test="excludeId != null">
+            AND id != #{excludeId}
+        </if>
+    </select>
 
 </mapper>

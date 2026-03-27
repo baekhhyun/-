@@ -42,3 +42,10 @@ export function delVaccine(id) {
     method: "delete",
   });
 }
+export function getMyVaccineProgress(vaccineId) {
+  return request({
+    url: "/vaccine/appointment/myProgress",
+    method: "get",
+    params: { vaccineId },
+  });
+}

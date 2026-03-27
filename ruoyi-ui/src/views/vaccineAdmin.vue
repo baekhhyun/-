@@ -37,6 +37,62 @@
       </el-col>
     </el-row>
 
+    <!--  多剂次统计卡片行（新增） -->
+    <el-row :gutter="20" class="stats-row">
+      <el-col :span="6">
+        <el-card class="multi-dose-card" shadow="hover">
+          <div class="multi-dose-content">
+            <div class="multi-dose-icon">
+              <i class="el-icon-s-data"></i>
+            </div>
+            <div class="multi-dose-info">
+              <div class="multi-dose-label">多剂次疫苗数</div>
+              <div class="multi-dose-value">{{ multiDoseCount }}</div>
+            </div>
+          </div>
+        </el-card>
+      </el-col>
+      <el-col :span="6">
+        <el-card class="multi-dose-card" shadow="hover">
+          <div class="multi-dose-content">
+            <div class="multi-dose-icon">
+              <i class="el-icon-success"></i>
+            </div>
+            <div class="multi-dose-info">
+              <div class="multi-dose-label">首剂接种率</div>
+              <div class="multi-dose-value">{{ firstDoseRate }}%</div>
+            </div>
+          </div>
+        </el-card>
+      </el-col>
+      <el-col :span="6">
+        <el-card class="multi-dose-card" shadow="hover">
+          <div class="multi-dose-content">
+            <div class="multi-dose-icon">
+              <i class="el-icon-refresh"></i>
+            </div>
+            <div class="multi-dose-info">
+              <div class="multi-dose-label">加强剂接种率</div>
+              <div class="multi-dose-value">{{ boosterDoseRate }}%</div>
+            </div>
+          </div>
+        </el-card>
+      </el-col>
+      <el-col :span="6">
+        <el-card class="multi-dose-card" shadow="hover">
+          <div class="multi-dose-content">
+            <div class="multi-dose-icon">
+              <i class="el-icon-bell"></i>
+            </div>
+            <div class="multi-dose-info">
+              <div class="multi-dose-label">今日待接种</div>
+              <div class="multi-dose-value">{{ todayRemindersCount }}</div>
+            </div>
+          </div>
+        </el-card>
+      </el-col>
+    </el-row>
+
     <!-- 图表行 -->
     <el-row :gutter="20" class="charts-row">
       <!-- 预约趋势图 -->
@@ -47,6 +103,14 @@
               ><i class="el-icon-data-line" style="color: #409eff"></i>
               预约趋势</span
             >
+            <el-radio-group
+              size="small"
+              v-model="trendType"
+              @change="handleTrendChange"
+            >
+              <el-radio-button label="week">近7天</el-radio-button>
+              <el-radio-button label="month">近30天</el-radio-button>
+            </el-radio-group>
           </div>
           <div id="trendChart" style="height: 350px; width: 100%"></div>
         </el-card>
@@ -80,7 +144,35 @@
         </el-card>
       </el-col>
 
-      <!-- 待处理预约列表  -->
+      <!--  疫苗消耗统计（新增） -->
+      <el-col :span="8">
+        <el-card class="chart-card" shadow="hover">
+          <div slot="header" class="chart-header">
+            <span
+              ><i class="el-icon-s-data" style="color: #409eff"></i>
+              疫苗消耗统计</span
+            >
+          </div>
+          <div id="consumptionChart" style="height: 350px; width: 100%"></div>
+        </el-card>
+      </el-col>
+
+      <!--  接种覆盖率统计（新增） -->
+      <el-col :span="8">
+        <el-card class="chart-card" shadow="hover">
+          <div slot="header" class="chart-header">
+            <span
+              ><i class="el-icon-pie-chart" style="color: #67c23a"></i>
+              接种覆盖率</span
+            >
+          </div>
+          <div id="coverageChart" style="height: 350px; width: 100%"></div>
+        </el-card>
+      </el-col>
+    </el-row>
+
+    <el-row :gutter="20" class="charts-row">
+      <!-- 待处理预约列表 -->
       <el-col :span="8">
         <el-card
           class="pending-card"
@@ -121,6 +213,22 @@
                   <span style="font-weight: bold">{{
                     item.vaccineName || "未知疫苗"
                   }}</span>
+                  <el-tag
+                    v-if="item.doseNumber && item.doseNumber > 0"
+                    size="mini"
+                    type="info"
+                    style="margin-left: 8px"
+                  >
+                    第{{ item.doseNumber }}剂
+                  </el-tag>
+                  <el-tag
+                    v-else
+                    size="mini"
+                    type="success"
+                    style="margin-left: 8px"
+                  >
+                    单剂次
+                  </el-tag>
                 </div>
                 <div class="info-line">
                   <i class="el-icon-date"></i>
@@ -178,6 +286,42 @@
           <div id="timeSlotChart" style="height: 350px; width: 100%"></div>
         </el-card>
       </el-col>
+
+      <!-- 今日待接种提醒列表（新增） -->
+      <el-col :span="8">
+        <el-card class="reminder-card" shadow="hover">
+          <div slot="header" class="reminder-header">
+            <span
+              ><i class="el-icon-bell" style="color: #e6a23c"></i>
+              今日待接种提醒 ({{ todayRemindersCount }})</span
+            >
+          </div>
+          <div class="reminder-list" v-loading="reminderLoading">
+            <div v-if="todayReminders.length === 0" class="empty-state">
+              <i class="el-icon-check"></i>
+              <p>今日无待接种提醒</p>
+            </div>
+            <div
+              v-for="item in todayReminders"
+              :key="item.id"
+              class="reminder-item"
+            >
+              <div class="reminder-user">{{ item.userName }}</div>
+              <div class="reminder-info">
+                <el-tag size="mini" type="warning">
+                  {{ item.vaccineName }}
+                </el-tag>
+                <el-tag v-if="item.doseNumber" size="mini" type="info">
+                  第{{ item.doseNumber }}剂
+                </el-tag>
+              </div>
+              <div class="reminder-date">
+                <i class="el-icon-date"></i> {{ item.nextDoseDate }}
+              </div>
+            </div>
+          </div>
+        </el-card>
+      </el-col>
     </el-row>
   </div>
 </template>
@@ -190,14 +334,20 @@ import {
   getVaccineRanking,
   getPendingList,
 } from "@/api/vaccine/dashboard";
-import { updateAppointment } from "@/api/vaccine/appointment";
-
+import {
+  updateAppointment,
+  getConsumptionStats,
+  getCoverageStats,
+  getTodayReminders,
+  listAppointment,
+} from "@/api/vaccine/appointment";
+import { listVaccine } from "@/api/vaccine/vaccine";
 export default {
   name: "AdminDashboard",
   data() {
     return {
       refreshTimer: null,
-      refreshInterval: 60000, // 60秒刷新一次
+      refreshInterval: 60000,
       isRefreshing: false,
       resizeTimer: null,
       observer: null,
@@ -211,6 +361,15 @@ export default {
       pendingList: [],
       loading: false,
       trendType: "week",
+      //  多剂次统计数据（新增）
+      multiDoseCount: 0,
+      firstDoseRate: 0,
+      boosterDoseRate: 0,
+      todayReminders: [],
+      todayRemindersCount: 0,
+      reminderLoading: false,
+      consumptionStats: [],
+      coverageStats: [],
       statsCards: [
         {
           label: "总预约数",
@@ -245,6 +404,8 @@ export default {
       pieChart: null,
       barChart: null,
       timeSlotChart: null,
+      consumptionChart: null,
+      coverageChart: null,
       trendDates: [],
       trendValues: [],
     };
@@ -271,46 +432,44 @@ export default {
       if (this.refreshTimer) {
         clearInterval(this.refreshTimer);
       }
-
       this.refreshTimer = setInterval(() => {
         this.refreshDashboard();
       }, this.refreshInterval);
     },
 
-    // 停止自动刷新
     stopAutoRefresh() {
       if (this.refreshTimer) {
         clearInterval(this.refreshTimer);
         this.refreshTimer = null;
-        // console.log("自动刷新已停止");
       }
     },
 
-    // 刷新仪表盘（带加载动画）
     refreshDashboard() {
-      // 避免重复刷新
       if (this.isRefreshing) return;
       this.isRefreshing = true;
-      // 并行请求所有数据
       Promise.all([
         this.getStats(),
         this.getTrend(),
         this.getRanking(),
         this.getPendingList(),
+        this.getMultiDoseStats(),
+        this.getTodayRemindersList(),
       ])
         .catch((error) => {
-          console.error("刷新失败:", error);
+          // console.error("刷新失败:", error);
         })
         .finally(() => {
           this.isRefreshing = false;
         });
     },
-    // ========== 初始化数据 ==========
+
     initData() {
       this.getStats();
       this.getTrend();
       this.getRanking();
       this.getPendingList();
+      this.getMultiDoseStats();
+      this.getTodayRemindersList();
     },
 
     getUserName() {
@@ -335,7 +494,176 @@ export default {
       this.currentDate = `${year}年${month}月${day}日 ${weekday}`;
     },
 
-    // ========== 获取数据 ==========
+    // ==========  多剂次统计方法==========
+    getMultiDoseStats() {
+      // console.log("========== 开始计算多剂次疫苗统计 ==========");
+      // 第一步：获取疫苗列表，统计多剂次疫苗数
+      listVaccine({ status: "0", pageSize: 999 })
+        .then((vaccineRes) => {
+          const vaccines = vaccineRes.rows || [];
+
+          // 多剂次疫苗数（is_multi_dose === 1）
+          this.multiDoseCount = vaccines.filter(
+            (v) => v.isMultiDose === 1
+          ).length;
+          // console.log("多剂次疫苗数:", this.multiDoseCount);
+        })
+        .catch((err) => {
+          // console.error("获取疫苗列表失败:", err);
+        });
+
+      // 第二步：获取所有预约记录，手动计算首剂接种率
+      listAppointment({ pageNum: 1, pageSize: 999 })
+        .then((appointmentRes) => {
+          const appointments = appointmentRes.rows || [];
+          // console.log("预约记录总数:", appointments.length);
+
+          if (appointments.length === 0) {
+            // console.log("没有预约记录，接种率为 0");
+            this.firstDoseRate = 0;
+            this.boosterDoseRate = 0;
+            return;
+          }
+
+          // 按用户+疫苗分组，统计每个疫苗的接种进度
+          const userVaccineMap = new Map();
+
+          appointments.forEach((app) => {
+            if (app.status === "3") return;
+
+            const key = `${app.userId}_${app.vaccineId}`;
+
+            if (!userVaccineMap.has(key)) {
+              userVaccineMap.set(key, {
+                userId: app.userId,
+                vaccineId: app.vaccineId,
+                doses: [],
+              });
+            }
+
+            const record = userVaccineMap.get(key);
+            record.doses.push({
+              doseNumber: app.doseNumber || 1,
+              isCompleted: app.isCompleted || 0,
+              status: app.status,
+            });
+          });
+
+          // console.log("用户-疫苗组合数:", userVaccineMap.size);
+
+          // 统计首剂和加强剂
+          let totalFirstDose = 0; // 已开始首剂的人数（有第1剂记录）
+          let completedFirstDose = 0; // 已完成首剂的人数
+          let totalBooster = 0; // 需要接种加强剂的人数（有第1剂完成记录）
+          let completedBooster = 0; // 已完成全部剂次的人数
+
+          userVaccineMap.forEach((record, key) => {
+            const doses = record.doses;
+
+            // 检查是否有第1剂记录
+            const firstDose = doses.find((d) => d.doseNumber === 1);
+            if (firstDose) {
+              totalFirstDose++;
+              // 第1剂已完成（isCompleted=1 或 status=已完成）
+              if (firstDose.isCompleted === 1 || firstDose.status === "2") {
+                completedFirstDose++;
+
+                // 有第1剂完成记录，说明需要接种加强剂
+                // 检查是否有其他剂次（第2、3...剂）
+                const otherDoses = doses.filter((d) => d.doseNumber > 1);
+
+                if (otherDoses.length > 0) {
+                  totalBooster++;
+                  // 检查最后一剂是否完成
+                  const maxDose = Math.max(...doses.map((d) => d.doseNumber));
+                  const lastDose = doses.find((d) => d.doseNumber === maxDose);
+                  if (
+                    lastDose &&
+                    (lastDose.isCompleted === 1 || lastDose.status === "2")
+                  ) {
+                    completedBooster++;
+                  }
+                } else {
+                }
+              }
+            }
+          });
+
+          // 计算接种率（保留整数）
+          this.firstDoseRate =
+            totalFirstDose > 0
+              ? Math.round((completedFirstDose / totalFirstDose) * 100)
+              : 0;
+
+          this.boosterDoseRate =
+            totalBooster > 0
+              ? Math.round((completedBooster / totalBooster) * 100)
+              : 0;
+
+          // console.log("首剂接种率计算:", {
+          //   totalFirstDose,
+          //   completedFirstDose,
+          //   rate: this.firstDoseRate + "%",
+          // });
+
+          // console.log("加强剂接种率计算:", {
+          //   totalBooster,
+          //   completedBooster,
+          //   rate: this.boosterDoseRate + "%",
+          // });
+
+          // console.log("========== 多剂次疫苗统计计算完成 ==========");
+        })
+        .catch((err) => {
+          // 出错时使用默认值
+          this.firstDoseRate = 0;
+          this.boosterDoseRate = 0;
+        });
+
+      // 第三步：获取消耗统计（用于图表）
+      getConsumptionStats()
+        .then((response) => {
+          if (response.code === 200) {
+            this.consumptionStats = response.data || [];
+            this.updateConsumptionChart(this.consumptionStats);
+          }
+        })
+        .catch((error) => {
+          // console.error("获取消耗统计失败:", error);
+        });
+
+      // 第四步：获取覆盖率统计（用于图表）
+      getCoverageStats()
+        .then((response) => {
+          if (response.code === 200) {
+            this.coverageStats = response.data || [];
+            this.updateCoverageChart(this.coverageStats);
+          }
+        })
+        .catch((error) => {
+          // console.error("获取覆盖率统计失败:", error);
+        });
+
+      // 第五步：获取今日提醒
+      this.getTodayRemindersList();
+    },
+
+    getTodayRemindersList() {
+      this.reminderLoading = true;
+      getTodayReminders()
+        .then((response) => {
+          if (response.code === 200) {
+            this.todayReminders = response.data || [];
+            this.todayRemindersCount = this.todayReminders.length;
+          }
+          this.reminderLoading = false;
+        })
+        .catch((error) => {
+          // console.error("获取今日提醒失败:", error);
+          this.reminderLoading = false;
+        });
+    },
+
     getStats() {
       getDashboardStats()
         .then((response) => {
@@ -347,7 +675,6 @@ export default {
             this.statsCards[3].value = data.vaccineCount || 0;
             this.pendingCount = data.pendingCount || 0;
 
-            // 更新饼图数据
             this.updatePieChart(
               data.statusData || [
                 { name: "待确认", value: 0 },
@@ -359,33 +686,27 @@ export default {
           }
         })
         .catch((error) => {
-          console.error("获取统计数据失败", error);
+          // console.error("获取统计数据失败", error);
         });
     },
 
     getTrend() {
-      getTrendData({ type: "week" })
+      getTrendData({ type: this.trendType })
         .then((response) => {
           const data = response.data;
-
           if (Array.isArray(data) && data.length > 0) {
-            // 提取日期和数量
-            this.trendDates = data.map((item) => item.date); // ["03-01", "03-02", ...]
-            this.trendValues = data.map((item) => item.count); // [3, 5, ...]
-
-            // 更新图表
+            this.trendDates = data.map((item) => item.date);
+            this.trendValues = data.map((item) => item.count);
             this.$nextTick(() => {
               this.updateTrendChart();
             });
           } else {
-            console.error("趋势数据格式错误或为空:", data);
-            // 显示空数据
             this.trendDates = [];
             this.trendValues = [];
           }
         })
         .catch((error) => {
-          console.error("获取趋势数据失败:", error);
+          // console.error("获取趋势数据失败:", error);
         });
     },
 
@@ -399,7 +720,7 @@ export default {
           }
         })
         .catch((error) => {
-          console.error("获取排行榜数据失败", error);
+          // console.error("获取排行榜数据失败", error);
         });
     },
 
@@ -416,6 +737,7 @@ export default {
     },
 
     // ========== 图表初始化 ==========
+
     initCharts() {
       const trendElement = document.getElementById("trendChart");
       if (trendElement) this.trendChart = echarts.init(trendElement);
@@ -428,18 +750,36 @@ export default {
 
       const timeSlotElement = document.getElementById("timeSlotChart");
       if (timeSlotElement) this.timeSlotChart = echarts.init(timeSlotElement);
+
+      const consumptionElement = document.getElementById("consumptionChart");
+      if (consumptionElement)
+        this.consumptionChart = echarts.init(consumptionElement);
+
+      const coverageElement = document.getElementById("coverageChart");
+      if (coverageElement) this.coverageChart = echarts.init(coverageElement);
     },
 
     // ========== 更新图表 ==========
-    updateTrendChart(data) {
+
+    updateTrendChart() {
       if (!this.trendChart) return;
+      const today = new Date();
+      const todayStr = `${String(today.getMonth() + 1).padStart(
+        2,
+        "0"
+      )}-${String(today.getDate()).padStart(2, "0")}`;
+      const todayIndex = this.trendDates.findIndex((date) => date === todayStr);
+
       const option = {
-        tooltip: { trigger: "axis" },
+        tooltip: { trigger: "axis", confine: true },
         grid: { left: "3%", right: "4%", bottom: "3%", containLabel: true },
         xAxis: {
           type: "category",
           data: this.trendDates,
-          axisLabel: { color: "#666" },
+          axisLabel: {
+            color: (value) => (value === todayStr ? "#ff4d4f" : "#666"),
+            fontWeight: (value) => (value === todayStr ? "bold" : "normal"),
+          },
         },
         yAxis: {
           type: "value",
@@ -450,7 +790,18 @@ export default {
           {
             name: "预约数",
             type: "line",
-            data: this.trendValues,
+            data: this.trendValues.map((value, index) => ({
+              value: value,
+              itemStyle:
+                index === todayIndex
+                  ? {
+                      color: "#ff4d4f",
+                      borderColor: "#ff4d4f",
+                      borderWidth: 2,
+                      shadowBlur: 10,
+                    }
+                  : null,
+            })),
             smooth: true,
             symbol: "circle",
             symbolSize: 8,
@@ -470,11 +821,7 @@ export default {
     updatePieChart(data) {
       if (!this.pieChart) return;
       const option = {
-        tooltip: {
-          trigger: "item",
-          formatter: "{b}: {c} ({d}%)",
-        },
-
+        tooltip: { trigger: "item", formatter: "{b}: {c} ({d}%)" },
         legend: { orient: "vertical", left: "left" },
         series: [
           {
@@ -488,19 +835,9 @@ export default {
             },
             data: data,
             color: ["#E6A23C", "#409EFF", "#67C23A", "#F56C6C"],
-            label: {
-              show: false,
-              position: "center",
-            },
+            label: { show: false },
             emphasis: {
-              label: {
-                show: true,
-                fontSize: 16,
-                fontWeight: "bold",
-              },
-            },
-            labelLine: {
-              show: false,
+              label: { show: true, fontSize: 16, fontWeight: "bold" },
             },
           },
         ],
@@ -559,19 +896,9 @@ export default {
                   { name: "下午", value: 0 },
                   { name: "晚上", value: 0 },
                 ],
-            label: {
-              show: false,
-              position: "center",
-            },
+            label: { show: false },
             emphasis: {
-              label: {
-                show: true,
-                fontSize: 16,
-                fontWeight: "bold",
-              },
-            },
-            labelLine: {
-              show: false,
+              label: { show: true, fontSize: 16, fontWeight: "bold" },
             },
             color: ["#36C2CE", "#77E4C8", "#FFC700"],
           },
@@ -580,7 +907,125 @@ export default {
       this.timeSlotChart.setOption(option);
     },
 
-    // ========== 格式化函数 ==========
+    //  疫苗消耗统计图
+    updateConsumptionChart(data) {
+      if (!this.consumptionChart) return;
+      const option = {
+        tooltip: {
+          trigger: "axis",
+          axisPointer: { type: "shadow" },
+          formatter: function (params) {
+            const item = params[0];
+            return `${item.name}<br/>库存消耗率: ${item.value}%`;
+          },
+        },
+        grid: { left: "3%", right: "4%", bottom: "3%", containLabel: true },
+        xAxis: {
+          type: "category",
+          data: data.map((item) => item.vaccineName) || [],
+          axisLabel: { rotate: 20, interval: 0 },
+        },
+        yAxis: { type: "value", name: "使用率 (%)" },
+        series: [
+          {
+            name: "使用率",
+            type: "bar",
+            data: data.map((item) => item.usageRate || 0) || [],
+            itemStyle: {
+              color: new echarts.graphic.LinearGradient(0, 0, 0, 1, [
+                { offset: 0, color: "#67C23A" },
+                { offset: 1, color: "#409EFF" },
+              ]),
+              borderRadius: [4, 4, 0, 0],
+            },
+
+            label: {
+              show: true,
+              position: "top",
+              formatter: "{c}%",
+            },
+          },
+        ],
+      };
+      this.consumptionChart.setOption(option);
+    },
+
+    //  接种覆盖率图表
+    updateCoverageChart(data) {
+      if (!this.coverageChart) return;
+
+      //  过滤掉使用率为 0 或没有数据的疫苗
+      const filteredData = (data || []).filter((item) => {
+        // 只显示有数据的疫苗
+        return (
+          item.coverageRate > 0 || item.usedCount > 0 || item.totalStock > 0
+        );
+      });
+
+      // 如果过滤后没有数据，显示提示
+      if (filteredData.length === 0) {
+        this.coverageChart.setOption({
+          title: {
+            show: true,
+            text: "暂无接种数据",
+            left: "center",
+            top: "center",
+            textStyle: {
+              color: "#909399",
+              fontSize: 14,
+            },
+          },
+          series: [],
+        });
+        return;
+      }
+
+      const option = {
+        tooltip: {
+          trigger: "item",
+          formatter: function (params) {
+            return `${params.name}<br/>接种覆盖率: ${params.value}%`;
+          },
+        },
+        legend: {
+          orient: "vertical",
+          left: "left",
+          data: filteredData.map((item) => item.vaccineName),
+        },
+        series: [
+          {
+            name: "接种覆盖率",
+            type: "pie",
+            radius: ["50%", "70%"],
+            avoidLabelOverlap: false,
+            itemStyle: {
+              borderRadius: 10,
+              borderColor: "#fff",
+              borderWidth: 2,
+            },
+            data: filteredData.map((item) => ({
+              name: item.vaccineName,
+              value: item.coverageRate || 0,
+            })),
+            label: {
+              show: true,
+              formatter: "{b}: {d}%",
+              color: "#333",
+            },
+            emphasis: {
+              label: {
+                show: true,
+                fontSize: 16,
+                fontWeight: "bold",
+              },
+            },
+          },
+        ],
+      };
+
+      this.coverageChart.setOption(option);
+    },
+
     formatTimeSlot(row) {
       if (!row || !row.timeSlot) return "未选择";
       const map = {
@@ -590,6 +1035,7 @@ export default {
       };
       return map[row.timeSlot] || row.timeSlot;
     },
+
     handleConfirm(row) {
       this.$confirm("确认该预约吗？", "提示", {
         confirmButtonText: "确定",
@@ -603,6 +1049,7 @@ export default {
             this.getPendingList();
             this.getStats();
             this.getTrend();
+            this.getMultiDoseStats();
           })
           .finally(() => {
             this.$set(row, "loading", false);
@@ -634,54 +1081,33 @@ export default {
     },
 
     goToPendingList() {
-      this.$router.push({
-        name: "VaccineAppointments",
-      });
+      this.$router.push({ name: "VaccineAppointments" });
     },
 
-    // ========== 窗口大小变化处理 ==========
     handleResize() {
-      if (this.resizeTimer) {
-        clearTimeout(this.resizeTimer);
-      }
-
+      if (this.resizeTimer) clearTimeout(this.resizeTimer);
       this.resizeTimer = setTimeout(() => {
-        // 强制重新计算图表大小
-        this.trendChart?.resize({
-          width: "auto",
-          height: "auto",
-        });
-        this.pieChart?.resize({
-          width: "auto",
-          height: "auto",
-        });
-        this.barChart?.resize({
-          width: "auto",
-          height: "auto",
-        });
-        this.timeSlotChart?.resize({
-          width: "auto",
-          height: "auto",
-        });
-
-        // console.log("图表已自适应调整");
+        this.trendChart?.resize();
+        this.pieChart?.resize();
+        this.barChart?.resize();
+        this.timeSlotChart?.resize();
+        this.consumptionChart?.resize();
+        this.coverageChart?.resize();
       }, 100);
     },
 
     observeContainer() {
       if (window.ResizeObserver) {
         this.observer = new ResizeObserver(() => {
-          window.requestAnimationFrame(() => {
-            this.handleResize();
-          });
+          window.requestAnimationFrame(() => this.handleResize());
         });
-
-        // 监听所有图表容器
         const containers = [
           "trendChart",
           "pieChart",
           "barChart",
           "timeSlotChart",
+          "consumptionChart",
+          "coverageChart",
         ];
         containers.forEach((id) => {
           const element = document.getElementById(id);
@@ -697,6 +1123,8 @@ export default {
       this.pieChart?.dispose();
       this.barChart?.dispose();
       this.timeSlotChart?.dispose();
+      this.consumptionChart?.dispose();
+      this.coverageChart?.dispose();
     },
   },
 };
@@ -780,6 +1208,46 @@ export default {
   opacity: 0.8;
 }
 
+/*  多剂次统计卡片样式（新增） */
+.multi-dose-card {
+  border-radius: 12px;
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  color: white;
+  transition: all 0.3s;
+}
+
+.multi-dose-card:hover {
+  transform: translateY(-5px);
+  box-shadow: 0 10px 20px rgba(0, 0, 0, 0.2);
+}
+
+.multi-dose-content {
+  display: flex;
+  align-items: center;
+  padding: 15px;
+}
+
+.multi-dose-icon i {
+  font-size: 40px;
+  margin-right: 15px;
+  opacity: 0.9;
+}
+
+.multi-dose-info {
+  flex: 1;
+}
+
+.multi-dose-label {
+  font-size: 14px;
+  opacity: 0.9;
+  margin-bottom: 5px;
+}
+
+.multi-dose-value {
+  font-size: 28px;
+  font-weight: bold;
+}
+
 .charts-row {
   margin-bottom: 20px;
 }
@@ -793,7 +1261,7 @@ export default {
   border-bottom: 1px solid #f0f0f0;
   height: 51px !important;
   box-sizing: border-box !important;
-  line-height: 21px !important; /* 与内边距配合 */
+  line-height: 21px !important;
 }
 
 .chart-header {
@@ -811,7 +1279,7 @@ export default {
   line-height: 1;
 }
 
-/* ========== 待处理列表卡片 ========== */
+/*  待处理列表卡片样式 */
 .pending-card {
   border-radius: 12px;
 }
@@ -819,7 +1287,7 @@ export default {
 .pending-card >>> .el-card__header {
   padding: 15px 20px !important;
   border-bottom: 1px solid #f0f0f0;
-  height: 51px !important; /* 固定高度，与图表卡片一致 */
+  height: 51px !important;
   box-sizing: border-box !important;
   line-height: 21px !important;
   background-color: #f8fafc;
@@ -840,19 +1308,16 @@ export default {
   line-height: 1;
 }
 
-/* 卡片内容无内边距 */
 .pending-card >>> .el-card__body {
   padding: 0 !important;
 }
 
-/* 待处理列表容器 */
 .pending-list {
   height: 385px;
-  overflow-y: auto; /* 超出滚动 */
+  overflow-y: auto;
   padding: 10px;
 }
 
-/* 单个待处理项 */
 .pending-item {
   border: 1px solid #e4e7ed;
   border-radius: 8px;
@@ -862,16 +1327,11 @@ export default {
   background-color: #fff;
 }
 
-.pending-item:last-child {
-  margin-bottom: 0;
-}
-
 .pending-item:hover {
   box-shadow: 0 2px 12px 0 rgba(0, 0, 0, 0.1);
   border-color: #409eff;
 }
 
-/* 项头部 */
 .item-header {
   display: flex;
   justify-content: space-between;
@@ -885,7 +1345,6 @@ export default {
   font-size: 14px;
 }
 
-/* 信息行 */
 .info-line {
   display: flex;
   align-items: center;
@@ -900,12 +1359,86 @@ export default {
   font-size: 14px;
 }
 
-/* 操作按钮区 */
 .item-actions {
   display: flex;
   margin-top: 10px;
   padding-top: 8px;
   border-top: 1px dashed #e4e7ed;
+}
+
+/*  今日待接种提醒卡片样式（新增） */
+.reminder-card {
+  border-radius: 12px;
+}
+
+.reminder-card >>> .el-card__header {
+  padding: 15px 20px !important;
+  border-bottom: 1px solid #f0f0f0;
+  height: 51px !important;
+  box-sizing: border-box !important;
+  line-height: 21px !important;
+  background-color: #f8fafc;
+}
+
+.reminder-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  height: 100%;
+  width: 100%;
+}
+
+.reminder-header span {
+  font-size: 16px;
+  font-weight: 500;
+  color: #2c3e50;
+  line-height: 1;
+}
+
+.reminder-card >>> .el-card__body {
+  padding: 0 !important;
+}
+
+.reminder-list {
+  height: 385px;
+  overflow-y: auto;
+  padding: 10px;
+}
+
+.reminder-item {
+  border: 1px solid #e4e7ed;
+  border-radius: 8px;
+  padding: 12px;
+  margin-bottom: 10px;
+  background-color: #fff;
+  transition: all 0.3s;
+}
+
+.reminder-item:hover {
+  border-color: #e6a23c;
+  box-shadow: 0 2px 8px rgba(230, 162, 60, 0.2);
+}
+
+.reminder-user {
+  font-weight: 600;
+  color: #2c3e50;
+  font-size: 14px;
+  margin-bottom: 8px;
+}
+
+.reminder-info {
+  display: flex;
+  gap: 8px;
+  margin-bottom: 8px;
+}
+
+.reminder-date {
+  font-size: 12px;
+  color: #909399;
+}
+
+.reminder-date i {
+  margin-right: 4px;
 }
 
 /* 空状态 */
@@ -926,17 +1459,27 @@ export default {
   font-size: 14px;
 }
 
+.more-tip {
+  text-align: center;
+  padding: 10px;
+  color: #909399;
+  font-size: 12px;
+}
+
 /* 滚动条美化 */
-.pending-list::-webkit-scrollbar {
+.pending-list::-webkit-scrollbar,
+.reminder-list::-webkit-scrollbar {
   width: 6px;
 }
 
-.pending-list::-webkit-scrollbar-thumb {
+.pending-list::-webkit-scrollbar-thumb,
+.reminder-list::-webkit-scrollbar-thumb {
   background: #ddd;
   border-radius: 3px;
 }
 
-.pending-list::-webkit-scrollbar-track {
+.pending-list::-webkit-scrollbar-track,
+.reminder-list::-webkit-scrollbar-track {
   background: #f5f7fa;
 }
 </style>

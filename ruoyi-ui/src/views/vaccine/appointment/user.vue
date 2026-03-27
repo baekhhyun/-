@@ -30,6 +30,13 @@
             <el-option label="老人(60岁以上)" value="5" />
           </el-select>
         </el-form-item>
+        <!-- 疫苗类型筛选 -->
+        <el-form-item label="疫苗类型">
+          <el-select v-model="filter.vaccineType" placeholder="全部" clearable>
+            <el-option label="单剂次疫苗" value="0" />
+            <el-option label="多剂次疫苗" value="1" />
+          </el-select>
+        </el-form-item>
         <el-form-item>
           <el-button type="primary" @click="searchVaccines">搜索</el-button>
           <el-button @click="resetFilter">重置</el-button>
@@ -38,7 +45,7 @@
 
       <!-- 疫苗列表 -->
       <div class="vaccine-list">
-        <el-row :gutter="20">
+        <el-row :gutter="20" type="flex" justify="start">
           <el-col
             :xs="24"
             :sm="12"
@@ -52,6 +59,22 @@
             <el-card class="vaccine-card" shadow="hover">
               <div slot="header">
                 <span class="vaccine-name">{{ vaccine.name }}</span>
+                <el-tag
+                  v-if="vaccine.isMultiDose === 1"
+                  type="warning"
+                  size="small"
+                  style="margin-left: 8px"
+                >
+                  多剂次
+                </el-tag>
+                <el-tag
+                  v-else
+                  type="info"
+                  size="small"
+                  style="margin-left: 8px"
+                >
+                  单剂次
+                </el-tag>
                 <el-tag
                   size="small"
                   :type="vaccine.stock > 0 ? 'success' : 'danger'"
@@ -80,6 +103,21 @@
                   >
                 </p>
                 <p><strong>库存数量：</strong>{{ vaccine.stock }} 剂</p>
+                <!-- 多剂次疫苗额外信息 -->
+                <div v-if="vaccine.isMultiDose === 1" class="multi-dose-info">
+                  <p>
+                    <strong>接种计划：</strong
+                    >{{ vaccine.totalDoses || "?" }} 剂次，间隔
+                    {{ vaccine.intervalDays || "?" }} 天
+                  </p>
+                  <p v-if="vaccine.doseSchedule">
+                    <strong>接种安排：</strong>{{ vaccine.doseSchedule }}
+                  </p>
+                </div>
+                <!-- 单剂次疫苗提示 -->
+                <p v-else class="single-dose-tip">
+                  <strong>温馨提示：</strong>只需接种一次
+                </p>
                 <p>
                   <strong>疫苗描述：</strong
                   >{{ vaccine.description || "暂无描述" }}
@@ -122,9 +160,20 @@
     >
       <div v-if="detailDialog.vaccine">
         <el-descriptions :column="1" border>
-          <el-descriptions-item label="疫苗名称">{{
-            detailDialog.vaccine.name
-          }}</el-descriptions-item>
+          <el-descriptions-item label="疫苗名称">
+            {{ detailDialog.vaccine.name }}
+            <el-tag
+              v-if="detailDialog.vaccine.isMultiDose === 1"
+              type="warning"
+              size="small"
+              style="margin-left: 8px"
+            >
+              多剂次
+            </el-tag>
+            <el-tag v-else type="info" size="small" style="margin-left: 8px">
+              单剂次
+            </el-tag>
+          </el-descriptions-item>
           <el-descriptions-item label="生产厂家">{{
             detailDialog.vaccine.manufacturer
           }}</el-descriptions-item>
@@ -148,6 +197,16 @@
           <el-descriptions-item label="当前库存"
             >{{ detailDialog.vaccine.stock }} 剂</el-descriptions-item
           >
+          <el-descriptions-item
+            v-if="detailDialog.vaccine.isMultiDose === 1"
+            label="接种计划"
+          >
+            {{ detailDialog.vaccine.totalDoses || "?" }} 剂次，间隔
+            {{ detailDialog.vaccine.intervalDays || "?" }} 天
+            <span v-if="detailDialog.vaccine.doseSchedule"
+              >（{{ detailDialog.vaccine.doseSchedule }}）</span
+            >
+          </el-descriptions-item>
           <el-descriptions-item label="疫苗描述">
             <div style="white-space: pre-line">
               {{ detailDialog.vaccine.description || "暂无描述" }}
@@ -175,24 +234,22 @@ export default {
   name: "VaccineAppointmentUser",
   data() {
     return {
-      // 筛选条件
       filter: {
         name: "",
         suitableAge: "",
+        vaccineType: "",
       },
-      // 疫苗列表
       vaccineList: [],
-      // 分页参数
       queryParams: {
         pageNum: 1,
-        pageSize: 10, // 3x3网格
+        pageSize: 9,
         name: undefined,
         suitableAge: undefined,
-        status: "0", // 只显示正常状态的疫苗
+        isMultiDose: undefined,
+        status: "0",
       },
       total: 0,
       loading: false,
-      // 详情对话框
       detailDialog: {
         visible: false,
         title: "",
@@ -204,14 +261,13 @@ export default {
     this.getVaccineList();
   },
   methods: {
-    // 获取疫苗列表
     getVaccineList() {
       this.loading = true;
-      // 合并筛选条件
       const params = {
         ...this.queryParams,
         name: this.filter.name || undefined,
         suitableAge: this.filter.suitableAge || undefined,
+        isMultiDose: this.filter.vaccineType || undefined,
       };
 
       listVaccine(params)
@@ -225,22 +281,20 @@ export default {
         });
     },
 
-    // 搜索疫苗
     searchVaccines() {
       this.queryParams.pageNum = 1;
       this.getVaccineList();
     },
 
-    // 重置筛选
     resetFilter() {
       this.filter = {
         name: "",
         suitableAge: "",
+        vaccineType: "",
       };
       this.searchVaccines();
     },
 
-    // 查看疫苗详情
     viewVaccineDetail(vaccine) {
       this.detailDialog = {
         visible: true,
@@ -249,18 +303,14 @@ export default {
       };
     },
 
-    // 前往预约页面
     goToAppointment(vaccine) {
-      // 保存选中的疫苗信息到本地存储或路由参数
       sessionStorage.setItem("selectedVaccine", JSON.stringify(vaccine));
-      // 跳转到预约表单页面
       this.$router.push({
         path: "/vaccine/appointment/form",
         query: { vaccineId: vaccine.id },
       });
     },
 
-    // 前往我的预约
     goToMyAppointment() {
       this.$router.push({ name: "myappointment" });
     },
@@ -277,12 +327,43 @@ export default {
   margin-top: 20px;
 }
 
+/*  修复布局：使用 flex 网格 */
+.vaccine-list .el-row {
+  display: flex;
+  flex-wrap: wrap;
+  margin-left: -10px !important;
+  margin-right: -10px !important;
+}
+
 .vaccine-card-col {
+  padding-left: 10px;
+  padding-right: 10px;
   margin-bottom: 20px;
+  display: flex;
 }
 
 .vaccine-card {
-  height: 100%;
+  width: 100%;
+  transition: all 0.3s;
+  display: flex;
+  flex-direction: column;
+}
+
+.vaccine-card:hover {
+  transform: translateY(-3px);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+}
+
+.vaccine-card >>> .el-card__header {
+  padding: 12px 15px;
+  border-bottom: 1px solid #eee;
+}
+
+.vaccine-card >>> .el-card__body {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  padding: 15px;
 }
 
 .vaccine-name {
@@ -291,18 +372,64 @@ export default {
 }
 
 .vaccine-info {
+  flex: 1;
   margin-bottom: 15px;
 }
 
 .vaccine-info p {
-  margin: 5px 0;
+  margin: 8px 0;
   font-size: 13px;
   color: #666;
+  line-height: 1.5;
+}
+
+.multi-dose-info {
+  background-color: #fef5e8;
+  border-radius: 4px;
+  padding: 8px 10px;
+  margin: 8px 0;
+  border-left: 3px solid #e6a23c;
+}
+
+.multi-dose-info p {
+  margin: 4px 0;
+  color: #e6a23c;
+}
+
+.single-dose-tip {
+  color: #67c23a;
+  background-color: #f0f9eb;
+  border-radius: 4px;
+  padding: 6px 10px;
+  margin: 8px 0;
 }
 
 .vaccine-actions {
   text-align: center;
-  padding-top: 10px;
+  padding-top: 12px;
   border-top: 1px solid #eee;
+  display: flex;
+  gap: 10px;
+  margin-top: auto;
+}
+
+.vaccine-actions .el-button {
+  flex: 1;
+}
+
+/* 响应式：小屏幕时一行2个 */
+@media (max-width: 768px) {
+  .vaccine-card-col {
+    flex: 0 0 50%;
+    max-width: 50%;
+  }
+}
+
+/* 响应式：超小屏幕时一行1个 */
+@media (max-width: 480px) {
+  .vaccine-card-col {
+    flex: 0 0 100%;
+    max-width: 100%;
+  }
 }
 </style>

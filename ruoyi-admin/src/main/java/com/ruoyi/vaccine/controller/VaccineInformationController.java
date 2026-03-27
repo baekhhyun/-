@@ -24,8 +24,6 @@ import com.ruoyi.common.core.page.TableDataInfo;
 
 /**
  * 疫苗信息Controller
- * 
- * @author jzx
  * @date 2026-02-08
  */
 @RestController

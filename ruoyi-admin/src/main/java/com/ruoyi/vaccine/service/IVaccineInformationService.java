@@ -6,8 +6,6 @@ import org.springframework.transaction.annotation.Transactional;
 
 /**
  * 疫苗信息Service接口
- * 
- * @author jzx
  * @date 2026-02-08
  */
 public interface IVaccineInformationService 

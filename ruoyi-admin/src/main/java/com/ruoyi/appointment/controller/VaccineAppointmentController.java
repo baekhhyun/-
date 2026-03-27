@@ -19,6 +19,7 @@ import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 import com.ruoyi.common.annotation.Log;
 import com.ruoyi.common.core.controller.BaseController;
@@ -332,6 +333,7 @@ public class VaccineAppointmentController extends BaseController
             return AjaxResult.error("删除失败：" + e.getMessage());
         }
     }
+
     @GetMapping("/pendingCount")
     public AjaxResult getPendingCount() {
         // 记录日志
@@ -419,5 +421,192 @@ public class VaccineAppointmentController extends BaseController
         }
     }
 
+    /**
+     * 确认预约（待确认 → 已确认）
+     */
+    @Log(title = "疫苗预约", businessType = BusinessType.UPDATE)
+    @PutMapping("/confirm/{id}")
+    public AjaxResult confirm(@PathVariable Long id)
+    {
+        try {
+            int result = vaccineAppointmentService.confirmAppointment(id);
+            return toAjax(result);
+        } catch (Exception e) {
+            logger.error("确认预约失败", e);
+            return AjaxResult.error("确认失败：" + e.getMessage());
+        }
+    }
 
+    /**
+     * 完成接种（已确认 → 已完成）
+     */
+    @Log(title = "疫苗预约", businessType = BusinessType.UPDATE)
+    @PutMapping("/complete/{id}")
+    public AjaxResult complete(@PathVariable Long id)
+    {
+        try {
+            int result = vaccineAppointmentService.completeAppointment(id);
+            return toAjax(result);
+        } catch (Exception e) {
+            logger.error("完成接种失败", e);
+            return AjaxResult.error("操作失败：" + e.getMessage());
+        }
+    }
+
+    /**
+     * 获取用户某疫苗的接种进度
+     */
+    @GetMapping("/myProgress")
+    public AjaxResult getMyVaccineProgress(@RequestParam Long vaccineId)
+    {
+        try {
+            Long userId = SecurityUtils.getUserId();
+
+            // 获取用户已完成剂次数
+            int completedDoses = vaccineAppointmentService.getUserCompletedDoses(userId, vaccineId);
+
+            // 获取疫苗信息
+            VaccineInformation vaccine = vaccineInformationService.selectVaccineInformationById(vaccineId);
+
+            Map<String, Object> result = new HashMap<>();
+            result.put("completedDoses", completedDoses);
+
+            if (vaccine != null && vaccine.getIsMultiDose() != null && vaccine.getIsMultiDose() == 1) {
+                int totalDoses = vaccine.getTotalDoses() != null ? vaccine.getTotalDoses() : 1;
+                int nextDose = completedDoses + 1;
+
+                if (nextDose <= totalDoses) {
+                    result.put("nextDose", nextDose);
+
+                    // 获取最新预约记录，计算最早可约日期
+                    VaccineAppointment latest = vaccineAppointmentService.getUserLatestAppointment(userId, vaccineId);
+                    if (latest != null && latest.getIsCompleted() == 1 && latest.getNextDoseDate() != null) {
+                        java.text.SimpleDateFormat sdf = new java.text.SimpleDateFormat("yyyy-MM-dd");
+                        result.put("earliestDate", sdf.format(latest.getNextDoseDate()));
+                    }
+                }
+            }
+
+            return success(result);
+        } catch (Exception e) {
+            logger.error("获取接种进度失败", e);
+            return AjaxResult.error("获取失败：" + e.getMessage());
+        }
+    }
+
+    /**
+     * 获取用户待接种提醒列表
+     */
+    @GetMapping("/myPendingDoses")
+    public AjaxResult getMyPendingDoses()
+    {
+        try {
+            Long userId = SecurityUtils.getUserId();
+            List<VaccineAppointment> list = vaccineAppointmentService.getUserPendingDoses(userId);
+            return success(list);
+        } catch (Exception e) {
+            logger.error("获取待接种提醒失败", e);
+            return AjaxResult.error("获取失败：" + e.getMessage());
+        }
+    }
+
+    /**
+     * 获取今日待接种提醒（管理员用）
+     */
+    @GetMapping("/todayReminders")
+    public AjaxResult getTodayReminders()
+    {
+        try {
+            List<Map<String, Object>> list = vaccineAppointmentService.getTodayReminders();
+            return success(list);
+        } catch (Exception e) {
+            logger.error("获取今日提醒失败", e);
+            return AjaxResult.error("获取失败：" + e.getMessage());
+        }
+    }
+
+    /**
+     * 获取疫苗消耗统计（用于仪表盘图表）
+     */
+    @GetMapping("/consumptionStats")
+    public AjaxResult getConsumptionStats()
+    {
+        try {
+            List<Map<String, Object>> list = vaccineAppointmentService.getVaccineConsumptionStats();
+            return success(list);
+        } catch (Exception e) {
+            logger.error("获取消耗统计失败", e);
+            return AjaxResult.error("获取失败：" + e.getMessage());
+        }
+    }
+
+    /**
+     * 获取接种覆盖率统计
+     */
+    @GetMapping("/coverageStats")
+    public AjaxResult getCoverageStats()
+    {
+        try {
+            List<Map<String, Object>> list = vaccineAppointmentService.getVaccinationCoverage();
+            return success(list);
+        } catch (Exception e) {
+            logger.error("获取覆盖率统计失败", e);
+            return AjaxResult.error("获取失败：" + e.getMessage());
+        }
+    }
+
+    /**
+     * 获取各剂次完成情况统计
+     */
+    @GetMapping("/doseStats/{vaccineId}")
+    public AjaxResult getDoseStats(@PathVariable Long vaccineId)
+    {
+        try {
+            List<Map<String, Object>> list = vaccineAppointmentService.getDoseCompletionStats(vaccineId);
+            return success(list);
+        } catch (Exception e) {
+            logger.error("获取剂次统计失败", e);
+            return AjaxResult.error("获取失败：" + e.getMessage());
+        }
+    }
+
+    /**
+     * 获取预约趋势（按日期统计，支持多剂次区分）
+     */
+    @GetMapping("/trend")
+    public AjaxResult getAppointmentTrend(@RequestParam(required = false) String beginDate,
+                                          @RequestParam(required = false) String endDate)
+    {
+        try {
+            // 如果没有传日期，默认最近14天
+            if (beginDate == null || endDate == null) {
+                java.util.Calendar cal = java.util.Calendar.getInstance();
+                java.text.SimpleDateFormat sdf = new java.text.SimpleDateFormat("yyyy-MM-dd");
+                endDate = sdf.format(cal.getTime());
+                cal.add(java.util.Calendar.DAY_OF_MONTH, -13);
+                beginDate = sdf.format(cal.getTime());
+            }
+
+            List<Map<String, Object>> list = vaccineAppointmentService.getAppointmentTrendByDate(beginDate, endDate);
+            return success(list);
+        } catch (Exception e) {
+            logger.error("获取预约趋势失败", e);
+            return AjaxResult.error("获取失败：" + e.getMessage());
+        }
+    }
+
+    /**
+     * 获取疫苗总预约数
+     */
+    @GetMapping("/totalBooked/{vaccineId}")
+    public AjaxResult getTotalBooked(@PathVariable Long vaccineId)
+    {
+        try {
+            int count = vaccineAppointmentService.getTotalBookedByVaccine(vaccineId);
+            return success(count);
+        } catch (Exception e) {
+            logger.error("获取总预约数失败", e);
+            return AjaxResult.error("获取失败：" + e.getMessage());
+        }
+    }
 }
