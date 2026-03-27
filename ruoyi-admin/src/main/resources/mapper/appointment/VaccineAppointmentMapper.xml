@@ -20,6 +20,7 @@
         <!-- 关联查询字段映射 -->
         <result property="vaccineName"    column="vaccineName"    />
         <result property="suitableAge"    column="suitableAge"    />
+        <result property="isMultiDose" column="isMultiDose"/>    <!-- 🔥 添加这一行 -->
         <result property="userName"    column="userName"    />
         <result property="userPhone"    column="userPhone"    />
         <result property="manufacturer" column="manufacturer"/>
@@ -59,6 +60,7 @@
         a.vaccine_id as vaccine_id,
         v.name as vaccineName,
         v.manufacturer as manufacturer,
+        v.is_multi_dose as isMultiDose,
         v.suitable_age as suitableAge,
         a.appointment_date as appointment_date,
         a.time_slot as time_slot,
@@ -118,6 +120,7 @@
         v.name as vaccineName,
         a.appointment_date as appointment_date,
         v.manufacturer as manufacturer,
+        v.is_multi_dose as isMultiDose,
         a.time_slot as time_slot,
         a.status as status,
         a.phone as phone,
@@ -149,6 +152,7 @@
         v.name as vaccineName,
         v.suitable_age as suitableAge,
         v.manufacturer as manufacturer,
+        v.is_multi_dose as isMultiDose,
         a.appointment_date,
         a.time_slot,
         a.status,

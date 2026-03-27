@@ -110,7 +110,7 @@
         <template slot-scope="scope">
           <!--  多剂次疫苗：有 doseNumber -->
           <el-tag
-            v-if="scope.row.doseNumber"
+            v-if="scope.row.isMultiDose == 1"
             size="small"
             :type="getDoseTagType(scope.row)"
           >

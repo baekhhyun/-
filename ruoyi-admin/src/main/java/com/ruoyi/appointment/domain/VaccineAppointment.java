@@ -46,7 +46,7 @@ public class VaccineAppointment extends BaseEntity
     /** 状态 */
     @Excel(name = "预约状态", readConverterExp = "0=待确认,1=已确认,2=已完成,3=已取消")
     private String status;
-
+    private Integer isMultiDose;
     /** 联系电话 */
     @Excel(name = "联系电话")
     private String phone;
@@ -112,6 +112,10 @@ public class VaccineAppointment extends BaseEntity
     public void setUpdateTime(Date updateTime) {
         this.updateTime = updateTime;
     }
+    public Integer getIsMultiDose() {
+        return isMultiDose;
+    }
+
 
     public Date getAppointmentDate()
     {
@@ -210,6 +214,7 @@ public class VaccineAppointment extends BaseEntity
                 .append("suitableAge", getSuitableAge())
                 .append("createBy", getCreateBy())
                 .append("createTime", getCreateTime())
+                .append("isMultiDose", getIsMultiDose())
                 .append("updateBy", getUpdateBy())
                 .append("doseNumber", getDoseNumber())
                 .append("nextDoseDate", getNextDoseDate())

@@ -88,6 +88,7 @@
           </div>
           <div class="reminder-action">
             <el-button
+              v-if="item.status === 'pending'"
               type="primary"
               size="small"
               @click="goToAppointment(item)"
