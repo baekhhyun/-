@@ -1,8 +1,8 @@
 <template>
   <div class="consultation-page app-container">
     <el-row :gutter="20">
-      <el-col :span="isAdmin ? 10 : 24">
-        <el-card shadow="never" class="mb16">
+      <el-col :span="vaccineAdmin ? 10 : 24">
+        <el-card shadow="never" class="mb16" v-if="!vaccineAdmin">
           <div slot="header"><span>发起在线咨询</span></div>
           <el-form ref="form" :model="form" :rules="rules" label-width="100px">
             <el-form-item label="咨询标题" prop="title">
@@ -16,7 +16,13 @@
               </el-radio-group>
             </el-form-item>
             <el-form-item label="咨询内容" prop="questionContent">
-              <el-input v-model="form.questionContent" type="textarea" :rows="6" maxlength="1000" show-word-limit />
+              <el-input
+                v-model="form.questionContent"
+                type="textarea"
+                :rows="6"
+                maxlength="1000"
+                show-word-limit
+              />
             </el-form-item>
             <el-form-item>
               <el-button type="primary" @click="submitForm">提交咨询</el-button>
@@ -26,16 +32,28 @@
         </el-card>
       </el-col>
 
-      <el-col :span="isAdmin ? 14 : 24">
+      <el-col :span="24">
         <el-card shadow="never">
           <div slot="header" class="header-actions">
-            <span>{{ isAdmin ? "咨询工单管理" : "我的咨询记录" }}</span>
-            <el-tag size="small" type="info">待回复 {{ pendingCount }} 条</el-tag>
+            <span>{{ vaccineAdmin ? "咨询工单管理" : "我的咨询记录" }}</span>
+            <el-tag size="small" type="info"
+              >待回复 {{ pendingCount }} 条</el-tag
+            >
           </div>
 
           <el-table :data="consultationList" v-loading="loading" border>
-            <el-table-column prop="title" label="标题" min-width="140" show-overflow-tooltip />
-            <el-table-column prop="userName" label="咨询人" width="100" v-if="isAdmin" />
+            <el-table-column
+              prop="title"
+              label="标题"
+              min-width="140"
+              show-overflow-tooltip
+            />
+            <el-table-column
+              prop="userName"
+              label="咨询人"
+              width="100"
+              v-if="vaccineAdmin"
+            />
             <el-table-column label="内容" min-width="200">
               <template slot-scope="scope">
                 <div class="line2">{{ scope.row.questionContent }}</div>
@@ -43,7 +61,9 @@
             </el-table-column>
             <el-table-column label="状态" width="100">
               <template slot-scope="scope">
-                <el-tag :type="scope.row.status === '1' ? 'success' : 'warning'">
+                <el-tag
+                  :type="scope.row.status === '1' ? 'success' : 'warning'"
+                >
                   {{ scope.row.status === "1" ? "已回复" : "待回复" }}
                 </el-tag>
               </template>
@@ -56,9 +76,22 @@
             <el-table-column prop="createTime" label="提交时间" width="165" />
             <el-table-column label="操作" width="180" fixed="right">
               <template slot-scope="scope">
-                <el-button type="text" @click="showDetail(scope.row)">详情</el-button>
-                <el-button v-if="isAdmin && scope.row.status === '0'" type="text" @click="openReply(scope.row)">回复</el-button>
-                <el-button v-if="isAdmin" type="text" style="color:#f56c6c" @click="remove(scope.row)">删除</el-button>
+                <el-button type="text" @click="showDetail(scope.row)"
+                  >详情</el-button
+                >
+                <el-button
+                  v-if="vaccineAdmin && scope.row.status === '0'"
+                  type="text"
+                  @click="openReply(scope.row)"
+                  >回复</el-button
+                >
+                <el-button
+                  v-if="vaccineAdmin"
+                  type="text"
+                  style="color: #f56c6c"
+                  @click="remove(scope.row)"
+                  >删除</el-button
+                >
               </template>
             </el-table-column>
           </el-table>
@@ -76,9 +109,15 @@
 
     <el-dialog title="咨询详情" :visible.sync="detailOpen" width="600px">
       <el-descriptions :column="1" border>
-        <el-descriptions-item label="标题">{{ detail.title }}</el-descriptions-item>
-        <el-descriptions-item label="咨询内容">{{ detail.questionContent }}</el-descriptions-item>
-        <el-descriptions-item label="回复内容">{{ detail.answerContent || '暂无回复' }}</el-descriptions-item>
+        <el-descriptions-item label="标题">{{
+          detail.title
+        }}</el-descriptions-item>
+        <el-descriptions-item label="咨询内容">{{
+          detail.questionContent
+        }}</el-descriptions-item>
+        <el-descriptions-item label="回复内容">{{
+          detail.answerContent || "暂无回复"
+        }}</el-descriptions-item>
       </el-descriptions>
     </el-dialog>
 
@@ -86,7 +125,13 @@
       <el-form :model="replyForm" label-width="90px">
         <el-form-item label="咨询标题">{{ replyForm.title }}</el-form-item>
         <el-form-item label="回复内容">
-          <el-input type="textarea" :rows="5" v-model="replyForm.answerContent" maxlength="1000" show-word-limit />
+          <el-input
+            type="textarea"
+            :rows="5"
+            v-model="replyForm.answerContent"
+            maxlength="1000"
+            show-word-limit
+          />
         </el-form-item>
       </el-form>
       <div slot="footer">
@@ -129,7 +174,9 @@ export default {
       },
       rules: {
         title: [{ required: true, message: "请输入咨询标题", trigger: "blur" }],
-        questionContent: [{ required: true, message: "请输入咨询内容", trigger: "blur" }],
+        questionContent: [
+          { required: true, message: "请输入咨询内容", trigger: "blur" },
+        ],
       },
       queryParams: {
         pageNum: 1,
@@ -138,7 +185,7 @@ export default {
     };
   },
   computed: {
-    isAdmin() {
+    vaccineAdmin() {
       const roles = this.$store.getters.roles || [];
       return Array.isArray(roles)
         ? roles.includes("admin") || roles.includes("vaccineAdmin")
@@ -151,12 +198,14 @@ export default {
   methods: {
     getList() {
       this.loading = true;
-      const req = this.isAdmin ? listConsultation : listMyConsultation;
+      const req = this.vaccineAdmin ? listConsultation : listMyConsultation;
       req(this.queryParams)
         .then((res) => {
           this.consultationList = res.rows || [];
           this.total = res.total || 0;
-          this.pendingCount = this.consultationList.filter((item) => item.status === "0").length;
+          this.pendingCount = this.consultationList.filter(
+            (item) => item.status === "0"
+          ).length;
         })
         .finally(() => {
           this.loading = false;
@@ -206,7 +255,7 @@ export default {
         });
     },
     formatPriority(priority) {
-      return { "0": "普通", "1": "较急", "2": "紧急" }[priority] || "普通";
+      return { 0: "普通", 1: "较急", 2: "紧急" }[priority] || "普通";
     },
   },
 };
