@@ -125,6 +125,12 @@ export const constantRoutes = [
         component: () => import("@/views/vaccine/appointment/index"),
         meta: { title: "预约管理", icon: "list" },
       },
+      {
+        path: "consultation",
+        name: "VaccineConsultation",
+        component: () => import("@/views/vaccine/consultation/index"),
+        meta: { title: "在线咨询", icon: "message" },
+      },
     ],
   },
   // 应该在 constantRoutes 数组中添加这个路由

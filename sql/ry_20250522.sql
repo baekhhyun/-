@@ -702,3 +702,26 @@ create table gen_table_column (
   update_time       datetime                                   comment '更新时间',
   primary key (column_id)
 ) engine=innodb auto_increment=1 comment = '代码生成业务表字段';
+-- ----------------------------
+-- 在线咨询表
+-- ----------------------------
+DROP TABLE IF EXISTS `vaccine_consultation`;
+CREATE TABLE `vaccine_consultation` (
+  `id` bigint(20) NOT NULL AUTO_INCREMENT COMMENT '咨询ID',
+  `user_id` bigint(20) NOT NULL COMMENT '用户ID',
+  `user_name` varchar(64) DEFAULT NULL COMMENT '用户名称',
+  `title` varchar(128) NOT NULL COMMENT '咨询标题',
+  `question_content` varchar(1000) NOT NULL COMMENT '咨询内容',
+  `answer_content` varchar(1000) DEFAULT NULL COMMENT '回复内容',
+  `status` char(1) DEFAULT '0' COMMENT '状态（0待回复 1已回复）',
+  `priority` char(1) DEFAULT '1' COMMENT '优先级（0普通 1较急 2紧急）',
+  `answer_time` datetime DEFAULT NULL COMMENT '回复时间',
+  `answer_by` varchar(64) DEFAULT NULL COMMENT '回复人',
+  `remark` varchar(500) DEFAULT NULL COMMENT '备注',
+  `create_by` varchar(64) DEFAULT '' COMMENT '创建者',
+  `create_time` datetime DEFAULT NULL COMMENT '创建时间',
+  `update_by` varchar(64) DEFAULT '' COMMENT '更新者',
+  `update_time` datetime DEFAULT NULL COMMENT '更新时间',
+  PRIMARY KEY (`id`),
+  KEY `idx_user_status` (`user_id`, `status`)
+) ENGINE=InnoDB AUTO_INCREMENT=100 DEFAULT CHARSET=utf8mb4 COMMENT='疫苗在线咨询表';

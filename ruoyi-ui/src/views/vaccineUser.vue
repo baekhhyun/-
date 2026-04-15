@@ -219,11 +219,11 @@ export default {
           action: "showGuide",
         },
         {
-          title: "联系我们",
-          desc: "获取帮助支持",
-          icon: "el-icon-phone",
+          title: "在线咨询",
+          desc: "接种问题及时答疑",
+          icon: "el-icon-chat-dot-round",
           color: "#F56C6C",
-          action: "showContact",
+          name: "VaccineConsultation",
         },
       ],
     };

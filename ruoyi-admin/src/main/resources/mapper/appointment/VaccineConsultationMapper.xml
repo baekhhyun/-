@@ -1,0 +1,79 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper
+        PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.ruoyi.appointment.mapper.VaccineConsultationMapper">
+
+    <resultMap id="VaccineConsultationResult" type="VaccineConsultation">
+        <id property="id" column="id"/>
+        <result property="userId" column="user_id"/>
+        <result property="userName" column="user_name"/>
+        <result property="title" column="title"/>
+        <result property="questionContent" column="question_content"/>
+        <result property="answerContent" column="answer_content"/>
+        <result property="status" column="status"/>
+        <result property="priority" column="priority"/>
+        <result property="answerTime" column="answer_time"/>
+        <result property="answerBy" column="answer_by"/>
+        <result property="createBy" column="create_by"/>
+        <result property="createTime" column="create_time"/>
+        <result property="updateBy" column="update_by"/>
+        <result property="updateTime" column="update_time"/>
+        <result property="remark" column="remark"/>
+    </resultMap>
+
+    <sql id="selectVaccineConsultationVo">
+        select id, user_id, user_name, title, question_content, answer_content, status,
+               priority, answer_time, answer_by, create_by, create_time, update_by, update_time, remark
+        from vaccine_consultation
+    </sql>
+
+    <select id="selectVaccineConsultationById" parameterType="Long" resultMap="VaccineConsultationResult">
+        <include refid="selectVaccineConsultationVo"/>
+        where id = #{id}
+    </select>
+
+    <select id="selectVaccineConsultationList" parameterType="VaccineConsultation" resultMap="VaccineConsultationResult">
+        <include refid="selectVaccineConsultationVo"/>
+        <where>
+            <if test="userId != null">and user_id = #{userId}</if>
+            <if test="userName != null and userName != ''">and user_name like concat('%', #{userName}, '%')</if>
+            <if test="title != null and title != ''">and title like concat('%', #{title}, '%')</if>
+            <if test="status != null and status != ''">and status = #{status}</if>
+            <if test="priority != null and priority != ''">and priority = #{priority}</if>
+        </where>
+        order by
+        case status when '0' then 0 else 1 end,
+        case priority when '2' then 0 when '1' then 1 else 2 end,
+        create_time desc
+    </select>
+
+    <insert id="insertVaccineConsultation" parameterType="VaccineConsultation" useGeneratedKeys="true" keyProperty="id">
+        insert into vaccine_consultation
+        (user_id, user_name, title, question_content, status, priority, create_by, create_time, remark)
+        values (#{userId}, #{userName}, #{title}, #{questionContent}, #{status}, #{priority}, #{createBy}, #{createTime}, #{remark})
+    </insert>
+
+    <update id="updateVaccineConsultation" parameterType="VaccineConsultation">
+        update vaccine_consultation
+        <set>
+            <if test="answerContent != null">answer_content = #{answerContent},</if>
+            <if test="status != null and status != ''">status = #{status},</if>
+            <if test="priority != null and priority != ''">priority = #{priority},</if>
+            <if test="answerTime != null">answer_time = #{answerTime},</if>
+            <if test="answerBy != null">answer_by = #{answerBy},</if>
+            <if test="updateBy != null">update_by = #{updateBy},</if>
+            <if test="updateTime != null">update_time = #{updateTime},</if>
+            <if test="remark != null">remark = #{remark},</if>
+        </set>
+        where id = #{id}
+    </update>
+
+    <delete id="deleteVaccineConsultationByIds" parameterType="Long">
+        delete from vaccine_consultation where id in
+        <foreach item="id" collection="ids" open="(" separator="," close=")">
+            #{id}
+        </foreach>
+    </delete>
+
+</mapper>
